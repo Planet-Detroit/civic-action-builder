@@ -307,7 +307,8 @@ function BuilderTab({
   officials, setOfficials,
   actions, setActions,
   allMeetings, allOrgs,
-  detectedIssues
+  detectedIssues,
+  customNotes, setCustomNotes
 }) {
   const [orgSearch, setOrgSearch] = useState('')
   const [meetingSearch, setMeetingSearch] = useState('')
@@ -557,6 +558,7 @@ function BuilderTab({
                 <option value="MPSC">MPSC</option>
                 <option value="EGLE">EGLE</option>
                 <option value="EPA">EPA</option>
+                <option value="GLWA">GLWA (Great Lakes Water Authority)</option>
                 <option value="Detroit">Detroit City</option>
               </select>
               <select
@@ -757,6 +759,21 @@ function BuilderTab({
             💡 Tip: For actions like "Submit comments", edit to include specific instructions (deadline, where to submit, what to include).
           </p>
         </div>
+
+        {/* Freeform Notes - NEW */}
+        <div className="bg-white rounded-lg shadow-md p-5">
+          <h2 className="font-heading font-bold text-base text-pd-text mb-3">📝 Additional Notes</h2>
+          <textarea
+            value={customNotes}
+            onChange={(e) => setCustomNotes(e.target.value)}
+            placeholder="Add any custom context, background info, or notes for readers..."
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          />
+          <p className="text-xs text-pd-text-light mt-2 italic">
+            This text will appear at the top of the civic action box.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -766,21 +783,17 @@ function BuilderTab({
 // Tab 3: Output
 // =============================================================================
 
-function OutputTab({ organizations, meetings, officials, actions }) {
+function OutputTab({ organizations, meetings, officials, actions, customNotes }) {
   const [copied, setCopied] = useState(false)
 
   const generateHTML = () => {
-    let html = `<div class="civic-action-box" style="background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
+    let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
   <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Take Action</h3>\n`
 
-    if (organizations.length > 0) {
-      html += `  <div style="margin-bottom: 16px;">
-    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Organizations to Follow</h4>
-    <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
-      organizations.forEach(org => {
-        html += `      <li style="margin-bottom: 4px;"><a href="${org.url || '#'}" style="color: #2f80c3; text-decoration: none;">${org.name}</a></li>\n`
-      })
-      html += `    </ul>
+    // Add custom notes at the top if present
+    if (customNotes?.trim()) {
+      html += `  <div style="margin-bottom: 16px; font-size: 14px; color: #333; line-height: 1.5;">
+    ${customNotes.replace(/\n/g, '<br>')}
   </div>\n`
     }
 
@@ -809,7 +822,7 @@ function OutputTab({ organizations, meetings, officials, actions }) {
 
     if (actions.length > 0) {
       html += `  <div style="margin-bottom: 16px;">
-    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">What You Can Do</h4>
+    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Civic Actions: What You Can Do</h4>
     <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
       actions.forEach(action => {
         if (action.url) {
@@ -826,7 +839,21 @@ function OutputTab({ organizations, meetings, officials, actions }) {
   </div>\n`
     }
 
-    html += `  <p style="font-size: 11px; color: #888; margin: 16px 0 0 0; padding-top: 12px; border-top: 1px solid #e0e0e0;">
+    if (organizations.length > 0) {
+      html += `  <div style="margin-bottom: 16px;">
+    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Organizations to Follow</h4>
+    <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
+      organizations.forEach(org => {
+        html += `      <li style="margin-bottom: 4px;"><a href="${org.url || '#'}" style="color: #2f80c3; text-decoration: none;">${org.name}</a></li>\n`
+      })
+      html += `    </ul>
+  </div>\n`
+    }
+
+    html += `  <p style="font-size: 13px; color: #333; margin: 16px 0 12px 0; font-style: italic;">
+    If you take civic action please let us know — email us at <a href="mailto:connect@planetdetroit.org" style="color: #2f80c3;">connect@planetdetroit.org</a>.
+  </p>
+  <p style="font-size: 11px; color: #888; margin: 0; padding-top: 12px; border-top: 1px solid #d0d8e0;">
     Civic resources compiled by <a href="https://planetdetroit.org" style="color: #2f80c3;">Planet Detroit</a>
   </p>
 </div>`
@@ -840,7 +867,7 @@ function OutputTab({ organizations, meetings, officials, actions }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const isEmpty = organizations.length === 0 && meetings.length === 0 && officials.length === 0 && actions.length === 0
+  const isEmpty = organizations.length === 0 && meetings.length === 0 && officials.length === 0 && actions.length === 0 && !customNotes?.trim()
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -854,21 +881,18 @@ function OutputTab({ organizations, meetings, officials, actions }) {
           </div>
         ) : (
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
-            <div className="bg-white border border-gray-200 rounded-lg p-5 max-w-sm shadow-sm">
+            {/* Updated preview with light blue-gray background */}
+            <div className="bg-[#f0f5f8] border border-[#d0d8e0] rounded-lg p-5 max-w-sm shadow-sm">
               <h3 className="font-heading font-bold text-lg text-pd-text mb-3 pb-2 border-b-2 border-pd-blue">
                 🗳️ Take Action
               </h3>
               
-              {organizations.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Organizations to Follow</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    {organizations.map((org, i) => (
-                      <li key={i} className="text-sm">
-                        <a href={org.url} className="text-pd-blue hover:underline">{org.name}</a>
-                      </li>
-                    ))}
-                  </ul>
+              {/* Custom notes at the top */}
+              {customNotes?.trim() && (
+                <div className="mb-4 text-sm text-pd-text leading-relaxed">
+                  {customNotes.split('\n').map((line, i) => (
+                    <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
+                  ))}
                 </div>
               )}
               
@@ -903,7 +927,7 @@ function OutputTab({ organizations, meetings, officials, actions }) {
               
               {actions.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">What You Can Do</h4>
+                  <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Civic Actions: What You Can Do</h4>
                   <ul className="space-y-2">
                     {actions.map((action, i) => (
                       <li key={i} className="text-sm">
@@ -920,8 +944,25 @@ function OutputTab({ organizations, meetings, officials, actions }) {
                   </ul>
                 </div>
               )}
+
+              {organizations.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Organizations to Follow</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {organizations.map((org, i) => (
+                      <li key={i} className="text-sm">
+                        <a href={org.url} className="text-pd-blue hover:underline">{org.name}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               
-              <p className="text-xs text-pd-text-light mt-4 pt-3 border-t border-gray-200">
+              <p className="text-sm text-pd-text italic mt-4">
+                If you take civic action please let us know — email us at{' '}
+                <a href="mailto:connect@planetdetroit.org" className="text-pd-blue">connect@planetdetroit.org</a>.
+              </p>
+              <p className="text-xs text-pd-text-light mt-3 pt-3 border-t border-[#d0d8e0]">
                 Civic resources compiled by <a href="https://planetdetroit.org" className="text-pd-blue">Planet Detroit</a>
               </p>
             </div>
@@ -970,6 +1011,7 @@ export default function App() {
   const [meetings, setMeetings] = useState([])
   const [officials, setOfficials] = useState([])
   const [actions, setActions] = useState([])
+  const [customNotes, setCustomNotes] = useState('')
   
   // Available options from database
   const [allMeetings, setAllMeetings] = useState([])
@@ -1048,6 +1090,8 @@ export default function App() {
             allMeetings={allMeetings}
             allOrgs={allOrgs}
             detectedIssues={analysis?.detected_issues}
+            customNotes={customNotes}
+            setCustomNotes={setCustomNotes}
           />
         )}
         
@@ -1057,6 +1101,7 @@ export default function App() {
             meetings={meetings}
             officials={officials}
             actions={actions}
+            customNotes={customNotes}
           />
         )}
       </main>
