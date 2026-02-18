@@ -21,11 +21,25 @@ const ALL_ELECTED_OFFICIALS = [
 const ISSUE_TO_AGENCY = {
   'energy': ['MPSC'],
   'dte_energy': ['MPSC'],
+  'consumers_energy': ['MPSC'],
+  'utilities': ['MPSC'],
+  'rates': ['MPSC'],
   'data_centers': ['MPSC', 'EGLE'],
   'air_quality': ['EGLE', 'EPA'],
-  'drinking_water': ['EGLE', 'EPA'],
+  'drinking_water': ['EGLE', 'EPA', 'GLWA'],
+  'water_quality': ['EGLE', 'GLWA'],
+  'infrastructure': ['GLWA', 'Detroit City Council'],
   'climate': ['EGLE', 'MPSC'],
-  'environmental_justice': ['EGLE', 'EPA'],
+  'environmental_justice': ['EGLE', 'EPA', 'Detroit City Council'],
+  'detroit': ['Detroit City Council'],
+  'local_government': ['Detroit City Council'],
+  'housing': ['Detroit City Council'],
+  'development': ['Detroit City Council'],
+  'public_health': ['Detroit City Council'],
+  'public_safety': ['Detroit City Council'],
+  'community': ['Detroit City Council'],
+  'pfas': ['EGLE', 'EPA'],
+  'permitting': ['EGLE'],
 }
 
 // =============================================================================
@@ -69,13 +83,12 @@ async function analyzeArticle(articleText) {
 }
 
 async function fetchAllMeetings() {
-  const response = await fetch(`${API_BASE}/api/meetings?status=upcoming&limit=50`)
+  const response = await fetch(`${API_BASE}/api/meetings?status=upcoming&limit=100`)
   if (!response.ok) return { meetings: [] }
   return response.json()
 }
 
 async function fetchAllOrganizations() {
-  // Try the organizations endpoint, fall back to empty if not available
   try {
     const response = await fetch(`${API_BASE}/api/organizations?limit=700`)
     if (response.ok) {
@@ -333,10 +346,15 @@ function BuilderTab({
     if (uniqueSuggestedAgencies.includes(meeting.agency)) {
       score += 10
     }
-    // Boost if meeting title contains detected issue keywords
+    // Boost if meeting's issue_tags overlap with detected issues
+    const meetingTags = meeting.issue_tags || meeting.issues || []
     detectedIssues?.forEach(issue => {
+      if (meetingTags.includes(issue)) {
+        score += 8
+      }
+      // Also check title text as fallback
       if (meeting.title?.toLowerCase().includes(issue.replace(/_/g, ' '))) {
-        score += 5
+        score += 3
       }
     })
     return { ...meeting, relevanceScore: score }
@@ -524,13 +542,16 @@ function BuilderTab({
               <div className="space-y-2">
                 {meetings.map((meeting, i) => (
                   <div key={i} className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <span className="text-sm font-semibold text-pd-text">{meeting.title}</span>
-                      <span className="text-xs text-pd-text-light ml-2">
-                        {new Date(meeting.start_datetime).toLocaleDateString()}
-                      </span>
+                      <div className="text-xs text-pd-text-light">
+                        {new Date(meeting.start_datetime).toLocaleDateString()} • {meeting.agency || 'TBD'}
+                        {(meeting.agenda_url || meeting.details_url || meeting.virtual_url) && (
+                          <a href={meeting.agenda_url || meeting.details_url || meeting.virtual_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>↗ Link</a>
+                        )}
+                      </div>
                     </div>
-                    <button onClick={() => removeMeeting(i)} className="text-red-500 hover:text-red-700">✕</button>
+                    <button onClick={() => removeMeeting(i)} className="text-red-500 hover:text-red-700 ml-2 flex-shrink-0">✕</button>
                   </div>
                 ))}
               </div>
@@ -557,9 +578,8 @@ function BuilderTab({
                 <option value="">All agencies</option>
                 <option value="MPSC">MPSC</option>
                 <option value="EGLE">EGLE</option>
-                <option value="EPA">EPA</option>
-                <option value="GLWA">GLWA (Great Lakes Water Authority)</option>
-                <option value="Detroit">Detroit City</option>
+                <option value="GLWA">GLWA</option>
+                <option value="Detroit City Council">Detroit City Council</option>
               </select>
               <select
                 value={meetingDateFilter}
@@ -581,21 +601,25 @@ function BuilderTab({
             </h3>
             <div className="max-h-48 overflow-y-auto space-y-1">
               {filteredMeetings.slice(0, 10).map((meeting, i) => (
-                <button
-                  key={meeting.id || i}
-                  onClick={() => addMeeting(meeting)}
-                  className="w-full text-left p-2 hover:bg-gray-100 rounded text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{meeting.title}</span>
-                    {meeting.relevanceScore > 0 && (
-                      <span className="text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Related</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-pd-text-light">
-                    {new Date(meeting.start_datetime).toLocaleDateString()} • {meeting.agency || 'TBD'}
-                  </div>
-                </button>
+                <div key={meeting.id || i} className="flex items-center gap-1 p-2 hover:bg-gray-100 rounded text-sm">
+                  <button
+                    onClick={() => addMeeting(meeting)}
+                    className="flex-1 text-left min-w-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{meeting.title}</span>
+                      {meeting.relevanceScore > 0 && (
+                        <span className="text-xs bg-yellow-100 text-yellow-700 px-1 rounded flex-shrink-0">Related</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-pd-text-light">
+                      {new Date(meeting.start_datetime).toLocaleDateString()} • {meeting.agency || 'TBD'}
+                    </div>
+                  </button>
+                  {(meeting.agenda_url || meeting.details_url || meeting.virtual_url) && (
+                    <a href={meeting.agenda_url || meeting.details_url || meeting.virtual_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 flex-shrink-0 px-1" title="Open meeting page">↗</a>
+                  )}
+                </div>
               ))}
               {filteredMeetings.length === 0 && (
                 <p className="text-sm text-pd-text-light">No meetings match your filters</p>
@@ -803,7 +827,9 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
     <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
       meetings.forEach(meeting => {
         const date = new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        html += `      <li style="margin-bottom: 4px;"><strong>${meeting.title}</strong> — ${date}${meeting.details_url ? ` <a href="${meeting.details_url}" style="color: #2f80c3;">Details</a>` : ''}</li>\n`
+        const agency = meeting.agency ? ` (${meeting.agency})` : ''
+        const link = meeting.agenda_url || meeting.details_url || meeting.virtual_url
+        html += `      <li style="margin-bottom: 4px;"><strong>${meeting.title}</strong>${agency} — ${date}${link ? ` <a href="${link}" style="color: #2f80c3;">Details</a>` : ''}</li>\n`
       })
       html += `    </ul>
   </div>\n`
@@ -903,7 +929,11 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
                     {meetings.map((meeting, i) => (
                       <li key={i} className="text-sm">
                         <strong>{meeting.title}</strong>
-                        <span className="text-pd-text-light"> — {new Date(meeting.start_datetime).toLocaleDateString()}</span>
+                        <span className="text-pd-text-light"> — {new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        {meeting.agency && <span className="text-pd-text-light"> ({meeting.agency})</span>}
+                        {(meeting.agenda_url || meeting.details_url || meeting.virtual_url) && (
+                          <a href={meeting.agenda_url || meeting.details_url || meeting.virtual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1 text-xs">Details</a>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -1027,7 +1057,7 @@ export default function App() {
   const handleAnalysisComplete = (result) => {
     // Pre-select suggested organizations
     if (result.related_organizations) {
-      setOrganizations(result.related_organizations.slice(0, 3))
+      setOrganizations(result.related_organizations.slice(0, 5))
       // Merge with existing orgs for searchability
       setAllOrgs(prev => {
         const existing = new Set(prev.map(o => o.name))
