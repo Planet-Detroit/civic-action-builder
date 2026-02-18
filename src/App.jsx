@@ -82,6 +82,28 @@ async function analyzeArticle(articleText) {
   return response.json()
 }
 
+function buildCalendarLinks(meeting) {
+  const title = meeting.title || ''
+  const start = new Date(meeting.start_datetime)
+  const end = new Date(start.getTime() + 60 * 60 * 1000) // assume 1 hour
+
+  // Format: YYYYMMDDTHHmmSS (no Z — treat as local time via ctz param)
+  const fmt = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+
+  const location = [meeting.location_name, meeting.location_address, meeting.location_city].filter(Boolean).join(', ')
+  const detailParts = [meeting.agency ? `Agency: ${meeting.agency}` : '']
+  if (meeting.virtual_url) detailParts.push(`Join online: ${meeting.virtual_url}`)
+  if (meeting.agenda_url) detailParts.push(`Agenda: ${meeting.agenda_url}`)
+  if (meeting.public_comment_instructions) detailParts.push(meeting.public_comment_instructions)
+  const details = detailParts.filter(Boolean).join('\n')
+
+  const google = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${fmt(start)}/${fmt(end)}&ctz=America/Detroit&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`
+
+  const outlook = `https://outlook.live.com/calendar/0/action/compose?subject=${encodeURIComponent(title)}&startdt=${start.toISOString()}&enddt=${end.toISOString()}&body=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`
+
+  return { google, outlook }
+}
+
 async function fetchAllMeetings() {
   const response = await fetch(`${API_BASE}/api/meetings?status=upcoming&limit=100`)
   if (!response.ok) return { meetings: [] }
@@ -812,7 +834,7 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
 
   const generateHTML = () => {
     let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
-  <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Take Action</h3>\n`
+  <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Civic Action Toolbox</h3>\n`
 
     // Add custom notes at the top if present
     if (customNotes?.trim()) {
@@ -826,10 +848,11 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Upcoming Meetings</h4>
     <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
       meetings.forEach(meeting => {
-        const date = new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        const date = new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
         const agency = meeting.agency ? ` (${meeting.agency})` : ''
         const link = meeting.agenda_url || meeting.details_url || meeting.virtual_url
-        html += `      <li style="margin-bottom: 4px;"><strong>${meeting.title}</strong>${agency} — ${date}${link ? ` <a href="${link}" style="color: #2f80c3;">Details</a>` : ''}</li>\n`
+        const cal = buildCalendarLinks(meeting)
+        html += `      <li style="margin-bottom: 8px;"><strong>${meeting.title}</strong>${agency} — ${date}${link ? ` · <a href="${link}" style="color: #2f80c3;">Details</a>` : ''}<br><span style="font-size: 12px;">📅 <a href="${cal.google}" style="color: #2f80c3;">Google</a> · <a href="${cal.outlook}" style="color: #2f80c3;">Outlook</a></span></li>\n`
       })
       html += `    </ul>
   </div>\n`
@@ -910,7 +933,7 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
             {/* Updated preview with light blue-gray background */}
             <div className="bg-[#f0f5f8] border border-[#d0d8e0] rounded-lg p-5 max-w-sm shadow-sm">
               <h3 className="font-heading font-bold text-lg text-pd-text mb-3 pb-2 border-b-2 border-pd-blue">
-                🗳️ Take Action
+                🗳️ Civic Action Toolbox
               </h3>
               
               {/* Custom notes at the top */}
@@ -926,16 +949,25 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
                 <div className="mb-4">
                   <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Upcoming Meetings</h4>
                   <ul className="list-disc list-inside space-y-1">
-                    {meetings.map((meeting, i) => (
-                      <li key={i} className="text-sm">
-                        <strong>{meeting.title}</strong>
-                        <span className="text-pd-text-light"> — {new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                        {meeting.agency && <span className="text-pd-text-light"> ({meeting.agency})</span>}
-                        {(meeting.agenda_url || meeting.details_url || meeting.virtual_url) && (
-                          <a href={meeting.agenda_url || meeting.details_url || meeting.virtual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1 text-xs">Details</a>
-                        )}
-                      </li>
-                    ))}
+                    {meetings.map((meeting, i) => {
+                      const cal = buildCalendarLinks(meeting)
+                      return (
+                        <li key={i} className="text-sm">
+                          <strong>{meeting.title}</strong>
+                          <span className="text-pd-text-light"> — {new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                          {meeting.agency && <span className="text-pd-text-light"> ({meeting.agency})</span>}
+                          {(meeting.agenda_url || meeting.details_url || meeting.virtual_url) && (
+                            <a href={meeting.agenda_url || meeting.details_url || meeting.virtual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1 text-xs">Details</a>
+                          )}
+                          <br />
+                          <span className="text-xs text-pd-text-light">
+                            <a href={cal.google} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cal</a>
+                            {' · '}
+                            <a href={cal.outlook} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Outlook</a>
+                          </span>
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               )}
