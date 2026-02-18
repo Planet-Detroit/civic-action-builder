@@ -545,6 +545,10 @@ function BuilderTab({
   const [meetingDateFilter, setMeetingDateFilter] = useState('')
   const [commentPeriodSearch, setCommentPeriodSearch] = useState('')
   const [editingActionIndex, setEditingActionIndex] = useState(null)
+  const [showManualMeeting, setShowManualMeeting] = useState(false)
+  const [manualMeeting, setManualMeeting] = useState({ title: '', agency: '', date: '', time: '', link: '' })
+  const [showManualCommentPeriod, setShowManualCommentPeriod] = useState(false)
+  const [manualCommentPeriod, setManualCommentPeriod] = useState({ title: '', agency: '', deadline: '', link: '', description: '' })
 
   // Filter organizations by search
   const filteredOrgs = allOrgs.filter(org => 
@@ -626,6 +630,23 @@ function BuilderTab({
     setMeetings(meetings.filter((_, i) => i !== index))
   }
 
+  const addManualMeeting = () => {
+    if (!manualMeeting.title.trim()) return
+    const dateStr = manualMeeting.date && manualMeeting.time
+      ? `${manualMeeting.date}T${manualMeeting.time}`
+      : manualMeeting.date ? `${manualMeeting.date}T00:00` : new Date().toISOString()
+    setMeetings([...meetings, {
+      id: `manual-${Date.now()}`,
+      title: manualMeeting.title.trim(),
+      agency: manualMeeting.agency.trim() || null,
+      start_datetime: dateStr,
+      details_url: manualMeeting.link.trim() || null,
+      _manual: true,
+    }])
+    setManualMeeting({ title: '', agency: '', date: '', time: '', link: '' })
+    setShowManualMeeting(false)
+  }
+
   const addCommentPeriod = (period) => {
     if (!commentPeriods.find(p => p.id === period.id)) {
       setCommentPeriods([...commentPeriods, period])
@@ -634,6 +655,25 @@ function BuilderTab({
 
   const removeCommentPeriod = (index) => {
     setCommentPeriods(commentPeriods.filter((_, i) => i !== index))
+  }
+
+  const addManualCommentPeriod = () => {
+    if (!manualCommentPeriod.title.trim()) return
+    const daysRemaining = manualCommentPeriod.deadline
+      ? Math.max(0, Math.floor((new Date(manualCommentPeriod.deadline) - new Date()) / (1000 * 60 * 60 * 24)))
+      : null
+    setCommentPeriods([...commentPeriods, {
+      id: `manual-${Date.now()}`,
+      title: manualCommentPeriod.title.trim(),
+      agency: manualCommentPeriod.agency.trim() || null,
+      end_date: manualCommentPeriod.deadline || null,
+      days_remaining: daysRemaining,
+      comment_url: manualCommentPeriod.link.trim() || null,
+      description: manualCommentPeriod.description.trim() || null,
+      _manual: true,
+    }])
+    setManualCommentPeriod({ title: '', agency: '', deadline: '', link: '', description: '' })
+    setShowManualCommentPeriod(false)
   }
 
   // Filter comment periods by search
@@ -869,6 +909,70 @@ function BuilderTab({
               )}
             </div>
           </div>
+
+          {/* Manual Meeting Entry */}
+          {showManualMeeting ? (
+            <div className="mt-3 p-3 border-2 border-dashed border-gray-300 rounded-lg space-y-2">
+              <h3 className="text-xs font-semibold text-pd-text-light">Add meeting manually</h3>
+              <input
+                type="text"
+                value={manualMeeting.title}
+                onChange={(e) => setManualMeeting({ ...manualMeeting, title: e.target.value })}
+                placeholder="Meeting title *"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              />
+              <input
+                type="text"
+                value={manualMeeting.agency}
+                onChange={(e) => setManualMeeting({ ...manualMeeting, agency: e.target.value })}
+                placeholder="Agency (e.g. EGLE, EPA, City Council)"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={manualMeeting.date}
+                  onChange={(e) => setManualMeeting({ ...manualMeeting, date: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
+                />
+                <input
+                  type="time"
+                  value={manualMeeting.time}
+                  onChange={(e) => setManualMeeting({ ...manualMeeting, time: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
+                />
+              </div>
+              <input
+                type="url"
+                value={manualMeeting.link}
+                onChange={(e) => setManualMeeting({ ...manualMeeting, link: e.target.value })}
+                placeholder="Link (agenda, details, or virtual URL)"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={addManualMeeting}
+                  disabled={!manualMeeting.title.trim()}
+                  className="flex-1 px-3 py-1.5 bg-pd-blue text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Add Meeting
+                </button>
+                <button
+                  onClick={() => { setShowManualMeeting(false); setManualMeeting({ title: '', agency: '', date: '', time: '', link: '' }) }}
+                  className="px-3 py-1.5 text-pd-text-light text-sm rounded hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowManualMeeting(true)}
+              className="mt-3 w-full px-4 py-2 border-2 border-dashed border-gray-300 text-pd-text-light text-sm rounded-lg hover:border-pd-blue hover:text-pd-blue transition-colors"
+            >
+              + Add meeting manually
+            </button>
+          )}
         </div>
 
         {/* Comment Periods */}
@@ -952,6 +1056,72 @@ function BuilderTab({
               )}
             </div>
           </div>
+
+          {/* Manual Comment Period Entry */}
+          {showManualCommentPeriod ? (
+            <div className="mt-3 p-3 border-2 border-dashed border-gray-300 rounded-lg space-y-2">
+              <h3 className="text-xs font-semibold text-pd-text-light">Add comment period manually</h3>
+              <input
+                type="text"
+                value={manualCommentPeriod.title}
+                onChange={(e) => setManualCommentPeriod({ ...manualCommentPeriod, title: e.target.value })}
+                placeholder="Comment period title *"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              />
+              <input
+                type="text"
+                value={manualCommentPeriod.agency}
+                onChange={(e) => setManualCommentPeriod({ ...manualCommentPeriod, agency: e.target.value })}
+                placeholder="Agency (e.g. EGLE, EPA, Army Corps)"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              />
+              <div>
+                <label className="text-xs text-pd-text-light">Comment deadline</label>
+                <input
+                  type="date"
+                  value={manualCommentPeriod.deadline}
+                  onChange={(e) => setManualCommentPeriod({ ...manualCommentPeriod, deadline: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                />
+              </div>
+              <input
+                type="url"
+                value={manualCommentPeriod.link}
+                onChange={(e) => setManualCommentPeriod({ ...manualCommentPeriod, link: e.target.value })}
+                placeholder="Link to submit comments"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              />
+              <textarea
+                value={manualCommentPeriod.description}
+                onChange={(e) => setManualCommentPeriod({ ...manualCommentPeriod, description: e.target.value })}
+                placeholder="Brief description (what's being decided, why it matters)"
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={addManualCommentPeriod}
+                  disabled={!manualCommentPeriod.title.trim()}
+                  className="flex-1 px-3 py-1.5 bg-pd-blue text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Add Comment Period
+                </button>
+                <button
+                  onClick={() => { setShowManualCommentPeriod(false); setManualCommentPeriod({ title: '', agency: '', deadline: '', link: '', description: '' }) }}
+                  className="px-3 py-1.5 text-pd-text-light text-sm rounded hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowManualCommentPeriod(true)}
+              className="mt-3 w-full px-4 py-2 border-2 border-dashed border-gray-300 text-pd-text-light text-sm rounded-lg hover:border-pd-blue hover:text-pd-blue transition-colors"
+            >
+              + Add comment period manually
+            </button>
+          )}
         </div>
 
         {/* Elected Officials */}
