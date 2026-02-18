@@ -2,21 +2,6 @@ import { useState, useEffect } from 'react'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-// =============================================================================
-// Sample Elected Officials (hardcoded for now - database coming later)
-// Currently from manual research of MI Legislature committee assignments
-// Future: OpenStates API, Google Civic API, or custom scraped database
-// =============================================================================
-
-const ALL_ELECTED_OFFICIALS = [
-  { id: 1, name: "Sam Singh", office: "State Senator", district: "District 21 (Ingham)", party: "D", committees: ["Energy Policy Chair"], email: "SenSSingh@senate.michigan.gov", phone: "(517) 373-1635", issues: ["energy", "dte_energy", "data_centers"] },
-  { id: 2, name: "Darrin Camilleri", office: "State Senator", district: "District 4 (Wayne)", party: "D", committees: ["Energy Policy"], email: "SenDCamilleri@senate.michigan.gov", phone: "(517) 373-7800", issues: ["energy", "dte_energy", "data_centers"] },
-  { id: 3, name: "Sue Shink", office: "State Senator", district: "District 14 (Washtenaw)", party: "D", committees: ["Environment, Great Lakes, and Energy"], email: "SenSShink@senate.michigan.gov", phone: "(517) 373-2406", issues: ["environment", "climate", "water"] },
-  { id: 4, name: "Mallory McMorrow", office: "State Senator", district: "District 8 (Oakland)", party: "D", committees: ["Appropriations"], email: "SenMMcMorrow@senate.michigan.gov", phone: "(517) 373-2523", issues: ["budget", "general"] },
-  { id: 5, name: "Jeff Irwin", office: "State Senator", district: "District 15 (Washtenaw)", party: "D", committees: ["Environment, Great Lakes, and Energy"], email: "SenJIrwin@senate.michigan.gov", phone: "(517) 373-2406", issues: ["environment", "climate", "air_quality"] },
-  { id: 6, name: "Stephanie Chang", office: "State Senator", district: "District 3 (Detroit)", party: "D", committees: ["Environment, Great Lakes, and Energy"], email: "SenSChang@senate.michigan.gov", phone: "(517) 373-7346", issues: ["environmental_justice", "air_quality", "detroit"] },
-]
-
 // Issue to agency mapping for meeting suggestions
 const ISSUE_TO_AGENCY = {
   'energy': ['MPSC'],
@@ -132,6 +117,29 @@ async function fetchAllOrganizations() {
     }
   } catch (e) {
     console.log('Organizations endpoint not available, using analysis results')
+  }
+  return []
+}
+
+async function fetchAllOfficials() {
+  try {
+    const response = await fetch(`${API_BASE}/api/officials?limit=200`)
+    if (response.ok) {
+      const data = await response.json()
+      const officials = data.officials || []
+      // Normalize field names for frontend use
+      return officials.map(o => ({
+        ...o,
+        district: `District ${o.current_district}`,
+        phone: o.capitol_voice || null,
+        // Use first letter for party display
+        party: o.party === 'Democratic' ? 'D' : o.party === 'Republican' ? 'R' : o.party?.charAt(0) || '',
+        // Keep committees as array
+        committees: o.committees || [],
+      }))
+    }
+  } catch (e) {
+    console.log('Officials endpoint not available')
   }
   return []
 }
@@ -535,11 +543,12 @@ function BuilderTab({
   commentPeriods, setCommentPeriods,
   officials, setOfficials,
   actions, setActions,
-  allMeetings, allCommentPeriods, allOrgs,
+  allMeetings, allCommentPeriods, allOrgs, allOfficials,
   detectedIssues,
   customNotes, setCustomNotes
 }) {
   const [orgSearch, setOrgSearch] = useState('')
+  const [officialSearch, setOfficialSearch] = useState('')
   const [meetingSearch, setMeetingSearch] = useState('')
   const [meetingAgencyFilter, setMeetingAgencyFilter] = useState('')
   const [meetingDateFilter, setMeetingDateFilter] = useState('')
@@ -605,9 +614,12 @@ function BuilderTab({
     return matchesSearch && matchesAgency && matchesDate
   })
 
-  // Get suggested officials based on detected issues
-  const suggestedOfficials = ALL_ELECTED_OFFICIALS.filter(official =>
-    detectedIssues?.some(issue => official.issues?.includes(issue))
+  // Filter officials by search
+  const filteredOfficials = allOfficials.filter(official =>
+    !officialSearch ||
+    official.name?.toLowerCase().includes(officialSearch.toLowerCase()) ||
+    official.committees?.some(c => c.toLowerCase().includes(officialSearch.toLowerCase())) ||
+    official.district?.toLowerCase().includes(officialSearch.toLowerCase())
   )
 
   const addOrganization = (org) => {
@@ -685,7 +697,8 @@ function BuilderTab({
   )
 
   const addOfficial = (official) => {
-    if (!officials.find(o => o.id === official.id)) {
+    const key = official.openstates_id || official.id
+    if (!officials.find(o => (o.openstates_id || o.id) === key)) {
       setOfficials([...officials, official])
     }
   }
@@ -727,9 +740,9 @@ function BuilderTab({
                 📅 Suggested agencies: {uniqueSuggestedAgencies.join(', ')}
               </span>
             )}
-            {suggestedOfficials.length > 0 && (
+            {officials.length > 0 && (
               <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
-                🏛️ {suggestedOfficials.length} relevant officials
+                🏛️ {officials.length} officials pre-selected
               </span>
             )}
           </div>
@@ -1127,7 +1140,7 @@ function BuilderTab({
         {/* Elected Officials */}
         <div className="bg-white rounded-lg shadow-md p-5">
           <h2 className="font-heading font-bold text-base text-pd-text mb-3">🏛️ Elected Officials</h2>
-          
+
           {/* Selected */}
           <div className="mb-4">
             <h3 className="text-xs font-semibold text-pd-text-light mb-2">Selected ({officials.length})</h3>
@@ -1138,6 +1151,10 @@ function BuilderTab({
                     <div>
                       <span className="text-sm font-semibold text-pd-text">{official.name}</span>
                       <span className="text-xs text-pd-text-light ml-2">({official.party})</span>
+                      <div className="text-xs text-pd-text-light">
+                        {official.office} · {official.district}
+                        {official.committees?.length > 0 && ` · ${official.committees[0]}`}
+                      </div>
                     </div>
                     <button onClick={() => removeOfficial(i)} className="text-red-500 hover:text-red-700">✕</button>
                   </div>
@@ -1148,39 +1165,43 @@ function BuilderTab({
             )}
           </div>
 
-          {/* Suggested Officials */}
-          {suggestedOfficials.length > 0 && (
-            <div className="mb-3">
-              <h3 className="text-xs font-semibold text-yellow-700 mb-2">⭐ Suggested (based on article topics)</h3>
-              <div className="space-y-1">
-                {suggestedOfficials.map((official) => (
-                  <button
-                    key={official.id}
-                    onClick={() => addOfficial(official)}
-                    className="w-full text-left p-2 bg-yellow-50 hover:bg-yellow-100 rounded text-sm border border-yellow-200"
-                  >
-                    <div className="font-semibold">{official.name} ({official.party})</div>
-                    <div className="text-xs text-pd-text-light">{official.committees[0]}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* All Officials */}
+          {/* Search & Add */}
           <div>
-            <h3 className="text-xs font-semibold text-pd-text-light mb-2">All Officials</h3>
-            <div className="max-h-40 overflow-y-auto space-y-1">
-              {ALL_ELECTED_OFFICIALS.map((official) => (
+            <h3 className="text-xs font-semibold text-pd-text-light mb-2">
+              Search All {allOfficials.length} Officials
+            </h3>
+            <input
+              type="text"
+              value={officialSearch}
+              onChange={(e) => setOfficialSearch(e.target.value)}
+              placeholder="Search by name, committee, or district..."
+              className="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-2"
+            />
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {officialSearch && filteredOfficials.slice(0, 15).map((official) => (
                 <button
-                  key={official.id}
+                  key={official.openstates_id || official.id}
                   onClick={() => addOfficial(official)}
                   className="w-full text-left p-2 hover:bg-gray-100 rounded text-sm"
                 >
                   <div className="font-semibold">{official.name} ({official.party})</div>
-                  <div className="text-xs text-pd-text-light">{official.office} • {official.committees[0]}</div>
+                  <div className="text-xs text-pd-text-light">
+                    {official.office} · {official.district}
+                    {official.committees?.length > 0 && ` · ${official.committees.slice(0, 2).join(', ')}`}
+                  </div>
                 </button>
               ))}
+              {officialSearch && filteredOfficials.length === 0 && (
+                <p className="text-sm text-pd-text-light p-2">No officials found</p>
+              )}
+              {officialSearch && filteredOfficials.length > 15 && (
+                <p className="text-xs text-pd-text-light text-center py-2">
+                  +{filteredOfficials.length - 15} more (refine search)
+                </p>
+              )}
+              {!officialSearch && (
+                <p className="text-sm text-pd-text-light p-2">Type to search...</p>
+              )}
             </div>
           </div>
         </div>
@@ -1372,7 +1393,10 @@ function OutputTab({ organizations, meetings, commentPeriods, officials, actions
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Contact Your Representatives</h4>
     <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
       officials.forEach(official => {
-        html += `      <li style="margin-bottom: 8px;"><strong>${official.name}</strong> (${official.party})<br><span style="color: #666; font-size: 12px;">${official.office}, ${official.district}</span><br><a href="mailto:${official.email}" style="color: #2f80c3; font-size: 12px;">${official.email}</a></li>\n`
+        const contactParts = []
+        if (official.email) contactParts.push(`<a href="mailto:${official.email}" style="color: #2f80c3; font-size: 12px;">${official.email}</a>`)
+        if (official.phone) contactParts.push(`<span style="color: #666; font-size: 12px;">${official.phone}</span>`)
+        html += `      <li style="margin-bottom: 8px;"><strong>${official.name}</strong> (${official.party})<br><span style="color: #666; font-size: 12px;">${official.office}, ${official.district}</span><br>${contactParts.join(' · ')}</li>\n`
       })
       html += `    </ul>
   </div>\n`
@@ -1707,12 +1731,14 @@ function AuthenticatedApp({ onSignOut }) {
   const [allMeetings, setAllMeetings] = useState([])
   const [allCommentPeriods, setAllCommentPeriods] = useState([])
   const [allOrgs, setAllOrgs] = useState([])
+  const [allOfficials, setAllOfficials] = useState([])
 
   // Load data on mount
   useEffect(() => {
     fetchAllMeetings().then(data => setAllMeetings(data.meetings || []))
     fetchAllCommentPeriods().then(data => setAllCommentPeriods(Array.isArray(data) ? data : []))
     fetchAllOrganizations().then(data => setAllOrgs(Array.isArray(data) ? data : []))
+    fetchAllOfficials().then(data => setAllOfficials(Array.isArray(data) ? data : []))
   }, [])
 
   // Auto-save builder state to localStorage
@@ -1776,6 +1802,19 @@ function AuthenticatedApp({ onSignOut }) {
         const newPeriods = result.related_comment_periods.filter(p => !existing.has(p.source_id))
         return [...prev, ...newPeriods]
       })
+    }
+
+    // Pre-select AI-ranked officials
+    if (result.related_officials && result.related_officials.length > 0) {
+      // Normalize the same way fetchAllOfficials does
+      const normalized = result.related_officials.map(o => ({
+        ...o,
+        district: `District ${o.current_district}`,
+        phone: o.capitol_voice || null,
+        party: o.party === 'Democratic' ? 'D' : o.party === 'Republican' ? 'R' : o.party?.charAt(0) || '',
+        committees: o.committees || [],
+      }))
+      setOfficials(normalized.slice(0, 3))
     }
 
     // Pre-select suggested civic actions
@@ -1843,6 +1882,7 @@ function AuthenticatedApp({ onSignOut }) {
             allMeetings={allMeetings}
             allCommentPeriods={allCommentPeriods}
             allOrgs={allOrgs}
+            allOfficials={allOfficials}
             detectedIssues={analysis?.detected_issues}
             customNotes={customNotes}
             setCustomNotes={setCustomNotes}
