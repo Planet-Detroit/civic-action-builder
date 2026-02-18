@@ -1098,11 +1098,22 @@ export default function App() {
       })
     }
     
+    // Pre-select AI-ranked meetings
+    if (result.related_meetings && result.related_meetings.length > 0) {
+      setMeetings(result.related_meetings.slice(0, 5))
+      // Merge AI-ranked meetings into allMeetings for searchability
+      setAllMeetings(prev => {
+        const existing = new Set(prev.map(m => m.source_id))
+        const newMeetings = result.related_meetings.filter(m => !existing.has(m.source_id))
+        return [...prev, ...newMeetings]
+      })
+    }
+
     // Pre-select suggested civic actions
     if (result.civic_actions) {
       setActions(result.civic_actions.slice(0, 4))
     }
-    
+
     // Auto-switch to builder tab
     setActiveTab('builder')
   }
