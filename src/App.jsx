@@ -110,6 +110,19 @@ async function fetchAllMeetings() {
   return response.json()
 }
 
+async function fetchAllCommentPeriods() {
+  try {
+    const response = await fetch(`${API_BASE}/api/comment-periods?status=open&limit=50`)
+    if (response.ok) {
+      const data = await response.json()
+      return data.comment_periods || []
+    }
+  } catch (e) {
+    console.log('Comment periods endpoint not available')
+  }
+  return []
+}
+
 async function fetchAllOrganizations() {
   try {
     const response = await fetch(`${API_BASE}/api/organizations?limit=700`)
@@ -456,10 +469,56 @@ function ArticleInputTab({ articleData, setArticleData, analysis, setAnalysis, o
             </div>
           </div>
           
-          <div>
+          <div className="mb-4">
             <h3 className="text-sm font-semibold text-pd-text-light mb-2">Summary</h3>
             <p className="text-sm text-pd-text">{analysis.summary}</p>
           </div>
+
+          {/* Related Meetings */}
+          {analysis.related_meetings?.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-pd-text-light mb-2">
+                📅 Related Meetings ({analysis.related_meetings.length})
+              </h3>
+              <div className="space-y-1">
+                {analysis.related_meetings.map((m, i) => (
+                  <div key={i} className="text-sm flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-pd-blue rounded-full flex-shrink-0" />
+                    <span className="font-medium">{m.title}</span>
+                    <span className="text-pd-text-light text-xs">
+                      {m.agency && `${m.agency} · `}{new Date(m.start_datetime).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Related Comment Periods */}
+          {analysis.related_comment_periods?.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-pd-text-light mb-2">
+                💬 Related Comment Periods ({analysis.related_comment_periods.length})
+              </h3>
+              <div className="space-y-1">
+                {analysis.related_comment_periods.map((p, i) => (
+                  <div key={i} className="text-sm flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />
+                    <span className="font-medium">{p.title}</span>
+                    <span className="text-pd-text-light text-xs">
+                      {p.agency && `${p.agency} · `}
+                      {p.end_date && `Deadline: ${new Date(p.end_date).toLocaleDateString()}`}
+                      {p.days_remaining != null && (
+                        <span className={p.days_remaining <= 7 ? ' text-red-600 font-semibold' : ''}>
+                          {' '}({p.days_remaining}d left)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -470,12 +529,13 @@ function ArticleInputTab({ articleData, setArticleData, analysis, setAnalysis, o
 // Tab 2: Civic Action Builder
 // =============================================================================
 
-function BuilderTab({ 
+function BuilderTab({
   organizations, setOrganizations,
   meetings, setMeetings,
+  commentPeriods, setCommentPeriods,
   officials, setOfficials,
   actions, setActions,
-  allMeetings, allOrgs,
+  allMeetings, allCommentPeriods, allOrgs,
   detectedIssues,
   customNotes, setCustomNotes
 }) {
@@ -483,6 +543,7 @@ function BuilderTab({
   const [meetingSearch, setMeetingSearch] = useState('')
   const [meetingAgencyFilter, setMeetingAgencyFilter] = useState('')
   const [meetingDateFilter, setMeetingDateFilter] = useState('')
+  const [commentPeriodSearch, setCommentPeriodSearch] = useState('')
   const [editingActionIndex, setEditingActionIndex] = useState(null)
 
   // Filter organizations by search
@@ -564,6 +625,24 @@ function BuilderTab({
   const removeMeeting = (index) => {
     setMeetings(meetings.filter((_, i) => i !== index))
   }
+
+  const addCommentPeriod = (period) => {
+    if (!commentPeriods.find(p => p.id === period.id)) {
+      setCommentPeriods([...commentPeriods, period])
+    }
+  }
+
+  const removeCommentPeriod = (index) => {
+    setCommentPeriods(commentPeriods.filter((_, i) => i !== index))
+  }
+
+  // Filter comment periods by search
+  const filteredCommentPeriods = allCommentPeriods.filter(period =>
+    !commentPeriodSearch ||
+    period.title?.toLowerCase().includes(commentPeriodSearch.toLowerCase()) ||
+    period.agency?.toLowerCase().includes(commentPeriodSearch.toLowerCase()) ||
+    period.description?.toLowerCase().includes(commentPeriodSearch.toLowerCase())
+  )
 
   const addOfficial = (official) => {
     if (!officials.find(o => o.id === official.id)) {
@@ -792,6 +871,89 @@ function BuilderTab({
           </div>
         </div>
 
+        {/* Comment Periods */}
+        <div className="bg-white rounded-lg shadow-md p-5">
+          <h2 className="font-heading font-bold text-base text-pd-text mb-3">💬 Comment Periods</h2>
+
+          {/* Selected */}
+          <div className="mb-4">
+            <h3 className="text-xs font-semibold text-pd-text-light mb-2">Selected ({commentPeriods.length})</h3>
+            {commentPeriods.length > 0 ? (
+              <div className="space-y-2">
+                {commentPeriods.map((period, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-semibold text-pd-text">{period.title}</span>
+                      <div className="text-xs text-pd-text-light">
+                        {period.agency || 'Unknown agency'}
+                        {period.end_date && (
+                          <span> · Deadline: {new Date(period.end_date).toLocaleDateString()}</span>
+                        )}
+                        {period.days_remaining != null && (
+                          <span className={`ml-1 font-semibold ${period.days_remaining <= 7 ? 'text-red-600' : 'text-amber-600'}`}>
+                            ({period.days_remaining} days left)
+                          </span>
+                        )}
+                        {period.comment_url && (
+                          <a href={period.comment_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>↗ Comment</a>
+                        )}
+                      </div>
+                      {period.description && (
+                        <p className="text-xs text-pd-text-light mt-1 line-clamp-2">{period.description.slice(0, 120)}</p>
+                      )}
+                    </div>
+                    <button onClick={() => removeCommentPeriod(i)} className="text-red-500 hover:text-red-700 ml-2 flex-shrink-0">✕</button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-pd-text-light">None selected</p>
+            )}
+          </div>
+
+          {/* Search & Add */}
+          <div>
+            <h3 className="text-xs font-semibold text-pd-text-light mb-2">
+              Available Comment Periods ({allCommentPeriods.length})
+            </h3>
+            <input
+              type="text"
+              value={commentPeriodSearch}
+              onChange={(e) => setCommentPeriodSearch(e.target.value)}
+              placeholder="Search comment periods..."
+              className="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-2"
+            />
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {filteredCommentPeriods.slice(0, 10).map((period, i) => (
+                <button
+                  key={period.id || i}
+                  onClick={() => addCommentPeriod(period)}
+                  className="w-full text-left p-2 hover:bg-gray-100 rounded text-sm"
+                >
+                  <div className="font-semibold">{period.title}</div>
+                  <div className="text-xs text-pd-text-light">
+                    {period.agency || 'Unknown'}
+                    {period.end_date && ` · Deadline: ${new Date(period.end_date).toLocaleDateString()}`}
+                    {period.days_remaining != null && (
+                      <span className={`ml-1 ${period.days_remaining <= 7 ? 'text-red-600 font-semibold' : ''}`}>
+                        ({period.days_remaining}d left)
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+              {filteredCommentPeriods.length === 0 && (
+                <p className="text-sm text-pd-text-light p-2">No comment periods found</p>
+              )}
+              {filteredCommentPeriods.length > 10 && (
+                <p className="text-xs text-pd-text-light text-center py-2">
+                  +{filteredCommentPeriods.length - 10} more (refine search)
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Elected Officials */}
         <div className="bg-white rounded-lg shadow-md p-5">
           <h2 className="font-heading font-bold text-base text-pd-text mb-3">🏛️ Elected Officials</h2>
@@ -966,7 +1128,7 @@ function BuilderTab({
 // Tab 3: Output
 // =============================================================================
 
-function OutputTab({ organizations, meetings, officials, actions, customNotes }) {
+function OutputTab({ organizations, meetings, commentPeriods, officials, actions, customNotes }) {
   const [copied, setCopied] = useState(false)
 
   const generateHTML = () => {
@@ -990,6 +1152,33 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
         const link = meeting.agenda_url || meeting.details_url || meeting.virtual_url
         const cal = buildCalendarLinks(meeting)
         html += `      <li style="margin-bottom: 8px;"><strong>${meeting.title}</strong>${agency} — ${date}${link ? ` · <a href="${link}" style="color: #2f80c3;">Details</a>` : ''}<br><span style="font-size: 12px;">📅 <a href="${cal.google}" style="color: #2f80c3;">Google</a> · <a href="${cal.outlook}" style="color: #2f80c3;">Outlook</a></span></li>\n`
+      })
+      html += `    </ul>
+  </div>\n`
+    }
+
+    if (commentPeriods.length > 0) {
+      html += `  <div style="margin-bottom: 16px;">
+    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Open Comment Periods</h4>
+    <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
+      commentPeriods.forEach(period => {
+        const deadline = period.end_date ? new Date(period.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
+        const agency = period.agency ? ` (${period.agency})` : ''
+        const daysLeft = period.days_remaining != null ? ` — ${period.days_remaining} days left` : ''
+        html += `      <li style="margin-bottom: 8px;">`
+        if (period.comment_url) {
+          html += `<a href="${period.comment_url}" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${period.title}</a>`
+        } else {
+          html += `<strong>${period.title}</strong>`
+        }
+        html += `${agency}`
+        if (deadline) {
+          html += `<br><span style="color: #666; font-size: 12px;">Deadline: ${deadline}${daysLeft}</span>`
+        }
+        if (period.description) {
+          html += `<br><span style="color: #666; font-size: 13px;">${period.description.slice(0, 150)}</span>`
+        }
+        html += `</li>\n`
       })
       html += `    </ul>
   </div>\n`
@@ -1053,7 +1242,7 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const isEmpty = organizations.length === 0 && meetings.length === 0 && officials.length === 0 && actions.length === 0 && !customNotes?.trim()
+  const isEmpty = organizations.length === 0 && meetings.length === 0 && commentPeriods.length === 0 && officials.length === 0 && actions.length === 0 && !customNotes?.trim()
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1109,6 +1298,40 @@ function OutputTab({ organizations, meetings, officials, actions, customNotes })
                 </div>
               )}
               
+              {commentPeriods.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Open Comment Periods</h4>
+                  <ul className="list-disc list-inside space-y-2">
+                    {commentPeriods.map((period, i) => (
+                      <li key={i} className="text-sm">
+                        {period.comment_url ? (
+                          <a href={period.comment_url} target="_blank" rel="noopener noreferrer" className="text-pd-blue hover:underline font-semibold">{period.title}</a>
+                        ) : (
+                          <strong>{period.title}</strong>
+                        )}
+                        {period.agency && <span className="text-pd-text-light"> ({period.agency})</span>}
+                        {period.end_date && (
+                          <>
+                            <br />
+                            <span className="text-xs text-pd-text-light">
+                              Deadline: {new Date(period.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {period.days_remaining != null && (
+                                <span className={period.days_remaining <= 7 ? 'text-red-600 font-semibold ml-1' : 'ml-1'}>
+                                  — {period.days_remaining} days left
+                                </span>
+                              )}
+                            </span>
+                          </>
+                        )}
+                        {period.description && (
+                          <p className="text-xs text-pd-text-light mt-0.5">{period.description.slice(0, 150)}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {officials.length > 0 && (
                 <div className="mb-4">
                   <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Contact Your Representatives</h4>
@@ -1241,29 +1464,101 @@ export default function App() {
   return <AuthenticatedApp onSignOut={handleSignOut} />
 }
 
+// =============================================================================
+// localStorage Persistence
+// =============================================================================
+
+const STORAGE_KEY = 'civic-action-builder-state'
+const STORAGE_EXPIRY_DAYS = 7
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const saved = JSON.parse(raw)
+    // Check 7-day expiry
+    if (saved.timestamp) {
+      const age = Date.now() - saved.timestamp
+      if (age > STORAGE_EXPIRY_DAYS * 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(STORAGE_KEY)
+        return null
+      }
+    }
+    return saved
+  } catch {
+    return null
+  }
+}
+
+function saveState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, timestamp: Date.now() }))
+  } catch {
+    // localStorage full or unavailable — ignore
+  }
+}
+
+function clearSavedState() {
+  localStorage.removeItem(STORAGE_KEY)
+}
+
 function AuthenticatedApp({ onSignOut }) {
-  const [activeTab, setActiveTab] = useState('input')
+  // Load saved state from localStorage
+  const saved = useState(() => loadSavedState())[0]
+
+  const [activeTab, setActiveTab] = useState(saved?.activeTab || 'input')
 
   // Article data
-  const [articleData, setArticleData] = useState(null)
-  const [analysis, setAnalysis] = useState(null)
+  const [articleData, setArticleData] = useState(saved?.articleData || null)
+  const [analysis, setAnalysis] = useState(saved?.analysis || null)
 
   // Builder selections
-  const [organizations, setOrganizations] = useState([])
-  const [meetings, setMeetings] = useState([])
-  const [officials, setOfficials] = useState([])
-  const [actions, setActions] = useState([])
-  const [customNotes, setCustomNotes] = useState('')
+  const [organizations, setOrganizations] = useState(saved?.organizations || [])
+  const [meetings, setMeetings] = useState(saved?.meetings || [])
+  const [commentPeriods, setCommentPeriods] = useState(saved?.commentPeriods || [])
+  const [officials, setOfficials] = useState(saved?.officials || [])
+  const [actions, setActions] = useState(saved?.actions || [])
+  const [customNotes, setCustomNotes] = useState(saved?.customNotes || '')
 
   // Available options from database
   const [allMeetings, setAllMeetings] = useState([])
+  const [allCommentPeriods, setAllCommentPeriods] = useState([])
   const [allOrgs, setAllOrgs] = useState([])
 
   // Load data on mount
   useEffect(() => {
     fetchAllMeetings().then(data => setAllMeetings(data.meetings || []))
+    fetchAllCommentPeriods().then(data => setAllCommentPeriods(Array.isArray(data) ? data : []))
     fetchAllOrganizations().then(data => setAllOrgs(Array.isArray(data) ? data : []))
   }, [])
+
+  // Auto-save builder state to localStorage
+  useEffect(() => {
+    // Don't save if everything is empty
+    const hasContent = articleData || analysis || organizations.length || meetings.length ||
+      commentPeriods.length || officials.length || actions.length || customNotes.trim()
+    if (!hasContent) return
+    saveState({
+      activeTab, articleData, analysis,
+      organizations, meetings, commentPeriods, officials, actions, customNotes
+    })
+  }, [activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, customNotes])
+
+  const handleNewArticle = () => {
+    clearSavedState()
+    setActiveTab('input')
+    setArticleData(null)
+    setAnalysis(null)
+    setOrganizations([])
+    setMeetings([])
+    setCommentPeriods([])
+    setOfficials([])
+    setActions([])
+    setCustomNotes('')
+  }
+
+  const hasSavedState = !!(articleData || analysis || organizations.length || meetings.length ||
+    commentPeriods.length || officials.length || actions.length || customNotes.trim())
 
   // When analysis completes, pre-populate builder with suggestions
   const handleAnalysisComplete = (result) => {
@@ -1289,6 +1584,17 @@ function AuthenticatedApp({ onSignOut }) {
       })
     }
 
+    // Pre-select AI-ranked comment periods
+    if (result.related_comment_periods && result.related_comment_periods.length > 0) {
+      setCommentPeriods(result.related_comment_periods.slice(0, 3))
+      // Merge into allCommentPeriods for searchability
+      setAllCommentPeriods(prev => {
+        const existing = new Set(prev.map(p => p.source_id))
+        const newPeriods = result.related_comment_periods.filter(p => !existing.has(p.source_id))
+        return [...prev, ...newPeriods]
+      })
+    }
+
     // Pre-select suggested civic actions
     if (result.civic_actions) {
       setActions(result.civic_actions.slice(0, 4))
@@ -1306,7 +1612,7 @@ function AuthenticatedApp({ onSignOut }) {
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex">
+          <div className="flex items-center">
             <TabButton active={activeTab === 'input'} onClick={() => setActiveTab('input')}>
               1. Article Input
             </TabButton>
@@ -1316,6 +1622,14 @@ function AuthenticatedApp({ onSignOut }) {
             <TabButton active={activeTab === 'output'} onClick={() => setActiveTab('output')}>
               3. Output
             </TabButton>
+            {hasSavedState && (
+              <button
+                onClick={handleNewArticle}
+                className="ml-auto px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
+              >
+                New Article
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1337,11 +1651,14 @@ function AuthenticatedApp({ onSignOut }) {
             setOrganizations={setOrganizations}
             meetings={meetings}
             setMeetings={setMeetings}
+            commentPeriods={commentPeriods}
+            setCommentPeriods={setCommentPeriods}
             officials={officials}
             setOfficials={setOfficials}
             actions={actions}
             setActions={setActions}
             allMeetings={allMeetings}
+            allCommentPeriods={allCommentPeriods}
             allOrgs={allOrgs}
             detectedIssues={analysis?.detected_issues}
             customNotes={customNotes}
@@ -1353,6 +1670,7 @@ function AuthenticatedApp({ onSignOut }) {
           <OutputTab
             organizations={organizations}
             meetings={meetings}
+            commentPeriods={commentPeriods}
             officials={officials}
             actions={actions}
             customNotes={customNotes}
