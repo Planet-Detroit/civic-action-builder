@@ -556,7 +556,10 @@ function BuilderTab({
         {/* Meetings */}
         <div className="bg-white rounded-lg shadow-md p-5">
           <h2 className="font-heading font-bold text-base text-pd-text mb-3">📅 Meetings</h2>
-          
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-3">
+            <strong>Note:</strong> Meetings are suggested based on agency, topic, and timing — not agenda content. Check agendas for specific items relevant to the article and add details manually.
+          </p>
+
           {/* Selected */}
           <div className="mb-4">
             <h3 className="text-xs font-semibold text-pd-text-light mb-2">Selected ({meetings.length})</h3>
