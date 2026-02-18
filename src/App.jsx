@@ -1301,6 +1301,16 @@ function BuilderTab({
 function OutputTab({ organizations, meetings, commentPeriods, officials, actions, customNotes }) {
   const [copied, setCopied] = useState(false)
 
+  // Build a slug for utm_content: lowercase, spaces → underscores, truncate
+  const utmSlug = (text) => (text || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 50)
+
+  // Append UTM params to a URL (skip mailto: and anchor-only links)
+  const trackLink = (url, contentLabel) => {
+    if (!url || url.startsWith('mailto:') || url === '#') return url
+    const sep = url.includes('?') ? '&' : '?'
+    return `${url}${sep}utm_source=planet_detroit&utm_medium=civic_action_box&utm_campaign=civic_action&utm_content=${utmSlug(contentLabel)}`
+  }
+
   const generateHTML = () => {
     let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
   <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Civic Action Toolbox</h3>\n`
@@ -1321,7 +1331,10 @@ function OutputTab({ organizations, meetings, commentPeriods, officials, actions
         const agency = meeting.agency ? ` (${meeting.agency})` : ''
         const link = meeting.agenda_url || meeting.details_url || meeting.virtual_url
         const cal = buildCalendarLinks(meeting)
-        html += `      <li style="margin-bottom: 8px;"><strong>${meeting.title}</strong>${agency} — ${date}${link ? ` · <a href="${link}" style="color: #2f80c3;">Details</a>` : ''}<br><span style="font-size: 12px;">📅 <a href="${cal.google}" style="color: #2f80c3;">Google</a> · <a href="${cal.outlook}" style="color: #2f80c3;">Outlook</a></span></li>\n`
+        const trackedLink = link ? trackLink(link, `meeting_${meeting.agency || meeting.title}`) : null
+        const trackedGoogle = trackLink(cal.google, 'calendar_google')
+        const trackedOutlook = trackLink(cal.outlook, 'calendar_outlook')
+        html += `      <li style="margin-bottom: 8px;"><strong>${meeting.title}</strong>${agency} — ${date}${trackedLink ? ` · <a href="${trackedLink}" style="color: #2f80c3;">Details</a>` : ''}<br><span style="font-size: 12px;">📅 <a href="${trackedGoogle}" style="color: #2f80c3;">Google</a> · <a href="${trackedOutlook}" style="color: #2f80c3;">Outlook</a></span></li>\n`
       })
       html += `    </ul>
   </div>\n`
@@ -1337,7 +1350,7 @@ function OutputTab({ organizations, meetings, commentPeriods, officials, actions
         const daysLeft = period.days_remaining != null ? ` — ${period.days_remaining} days left` : ''
         html += `      <li style="margin-bottom: 8px;">`
         if (period.comment_url) {
-          html += `<a href="${period.comment_url}" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${period.title}</a>`
+          html += `<a href="${trackLink(period.comment_url, `comment_${period.agency || period.title}`)}" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${period.title}</a>`
         } else {
           html += `<strong>${period.title}</strong>`
         }
@@ -1371,7 +1384,7 @@ function OutputTab({ organizations, meetings, commentPeriods, officials, actions
     <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
       actions.forEach(action => {
         if (action.url) {
-          html += `      <li style="margin-bottom: 8px;"><a href="${action.url}" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${action.title}</a>`
+          html += `      <li style="margin-bottom: 8px;"><a href="${trackLink(action.url, `action_${action.title}`)}" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${action.title}</a>`
         } else {
           html += `      <li style="margin-bottom: 8px;"><strong>${action.title}</strong>`
         }
@@ -1389,7 +1402,7 @@ function OutputTab({ organizations, meetings, commentPeriods, officials, actions
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Organizations to Follow</h4>
     <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
       organizations.forEach(org => {
-        html += `      <li style="margin-bottom: 4px;"><a href="${org.url || '#'}" style="color: #2f80c3; text-decoration: none;">${org.name}</a></li>\n`
+        html += `      <li style="margin-bottom: 4px;"><a href="${trackLink(org.url || '#', `org_${org.name}`)}" style="color: #2f80c3; text-decoration: none;">${org.name}</a></li>\n`
       })
       html += `    </ul>
   </div>\n`
