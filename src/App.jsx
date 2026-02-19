@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import DOMPurify from 'dompurify'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_KEY = import.meta.env.VITE_API_KEY || ''
 
 // Issue to agency mapping for meeting suggestions
 const ISSUE_TO_AGENCY = {
@@ -59,9 +60,11 @@ async function fetchArticleFromWordPress(url) {
 }
 
 async function analyzeArticle(articleText) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (API_KEY) headers['Authorization'] = `Bearer ${API_KEY}`
   const response = await fetch(`${API_BASE}/api/analyze-article`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ article_text: articleText })
   })
   if (!response.ok) throw new Error('Analysis failed')
