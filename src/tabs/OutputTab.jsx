@@ -4,8 +4,9 @@ import { buildCalendarLinks } from '../lib/calendar.js'
 
 export default function OutputTab({ organizations, meetings, commentPeriods, officials, actions, customNotes }) {
   const [copied, setCopied] = useState(false)
+  const [interactiveCheckboxes, setInteractiveCheckboxes] = useState(false)
 
-  const html = generateHTML({ meetings, commentPeriods, officials, actions, organizations, customNotes })
+  const html = generateHTML({ meetings, commentPeriods, officials, actions, organizations, customNotes, interactiveCheckboxes })
 
   const handleCopy = () => {
     navigator.clipboard.writeText(html)
@@ -174,6 +175,17 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
             {copied ? '✓ Copied!' : 'Copy HTML'}
           </button>
         </div>
+
+        <label className="flex items-center gap-2 mb-4 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={interactiveCheckboxes}
+            onChange={(e) => setInteractiveCheckboxes(e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm text-pd-text">Include interactive checkboxes (WordPress only)</span>
+          <span className="text-xs text-pd-text-light">— readers can mark actions they've taken</span>
+        </label>
 
         <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto max-h-96">
           {isEmpty ? '<!-- Add items in Builder tab -->' : html}

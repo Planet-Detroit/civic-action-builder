@@ -224,3 +224,77 @@ describe('generateHTML', () => {
     expect(html).toContain('utm_source=planet_detroit')
   })
 })
+
+describe('generateHTML with interactiveCheckboxes', () => {
+  const sampleData = {
+    meetings: [{ title: 'Test Meeting', start_datetime: '2025-03-15T10:00:00', agency: 'EGLE' }],
+    actions: [{ title: 'Submit Comment', description: 'Tell EGLE', url: 'https://example.com' }],
+    officials: [{ name: 'Jane Doe', party: 'D', office: 'Senate', district: 'District 1', email: 'j@gov.gov' }],
+    commentPeriods: [{ title: 'Water Rules', agency: 'EGLE', comment_url: 'https://example.com/comment' }],
+  }
+
+  // Backwards compatible: default = no checkboxes
+  it('has no checkboxes by default', () => {
+    const html = generateHTML(sampleData)
+    expect(html).not.toContain('civic-checkbox')
+    expect(html).not.toContain('type="checkbox"')
+    expect(html).not.toContain('<script>')
+  })
+
+  // Checkboxes present when flag is true
+  it('adds checkboxes when interactiveCheckboxes is true', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
+    expect(html).toContain('type="checkbox"')
+    expect(html).toContain('civic-checkbox')
+  })
+
+  // Each action type gets appropriate data-action attribute
+  it('uses attend_meeting data-action for meetings', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
+    expect(html).toContain('data-action="attend_meeting"')
+  })
+
+  it('uses submit_comment data-action for comment periods', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
+    expect(html).toContain('data-action="submit_comment"')
+  })
+
+  it('uses contact_official data-action for officials', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
+    expect(html).toContain('data-action="contact_official"')
+  })
+
+  it('uses action slug for civic actions data-action', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
+    expect(html).toContain('data-action="submit_comment"')
+  })
+
+  // Inline script contains gtag event calls
+  it('includes GA4 event tracking in inline script', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
+    expect(html).toContain("<script>")
+    expect(html).toContain("gtag('event'")
+    expect(html).toContain('civic_action_taken')
+    expect(html).toContain('civic_action_untaken')
+  })
+
+  // Hidden email form present
+  it('includes hidden email capture form', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
+    expect(html).toContain('civic-email-form')
+    expect(html).toContain('civic-email-input')
+    expect(html).toContain('display: none')
+  })
+
+  // Email form submits to backend
+  it('submits to civic-responses API endpoint', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
+    expect(html).toContain('/api/civic-responses')
+  })
+
+  // No script when flag is false
+  it('excludes script when interactiveCheckboxes is false', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: false })
+    expect(html).not.toContain('<script>')
+  })
+})
