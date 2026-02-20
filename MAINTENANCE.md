@@ -1,6 +1,6 @@
 # Civic Action Builder — Maintenance Guide
 
-**Last Updated:** February 19, 2026
+**Last Updated:** February 20, 2026
 
 ---
 
@@ -130,3 +130,5 @@ Checkboxes are **off by default** for backwards compatibility. The feature requi
 | **Vercel** | Frontend hosting | Free tier |
 | **Ask Planet Detroit API** | Backend for AI analysis, meetings, orgs, officials | See ask-planet-detroit |
 | **DOMPurify** | HTML sanitization for generated output | npm package (free) |
+| **Vitest** | Test runner (57 tests) | npm dev dependency (free) |
+| **Supabase** | `civic_responses` table for checkbox engagement data | See ask-planet-detroit |
