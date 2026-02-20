@@ -9,7 +9,9 @@ export default function BuilderTab({
   actions, setActions,
   allMeetings, allCommentPeriods, allOrgs, allOfficials,
   detectedIssues,
-  customNotes, setCustomNotes
+  whyItMatters, setWhyItMatters,
+  whosDeciding, setWhosDeciding,
+  whatToWatch, setWhatToWatch
 }) {
   const [orgSearch, setOrgSearch] = useState('')
   const [officialSearch, setOfficialSearch] = useState('')
@@ -185,6 +187,32 @@ export default function BuilderTab({
 
   return (
     <div className="space-y-6">
+      {/* Why it matters — AI-prepopulated, editable */}
+      <div className="bg-white rounded-lg shadow-md p-5">
+        <h2 className="font-heading font-bold text-base text-pd-text mb-2">💡 Why It Matters</h2>
+        <p className="text-xs text-pd-text-light mb-2">1-2 paragraphs explaining why this story matters to Metro Detroit residents. Pre-filled by AI — review and edit.</p>
+        <textarea
+          value={whyItMatters}
+          onChange={(e) => setWhyItMatters(e.target.value)}
+          placeholder="Why does this story matter to readers? Focus on direct impacts to health, wallets, or community..."
+          rows={4}
+          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+        />
+      </div>
+
+      {/* Who's making public decisions — AI-prepopulated, editable */}
+      <div className="bg-white rounded-lg shadow-md p-5">
+        <h2 className="font-heading font-bold text-base text-pd-text mb-2">🏛️ Who's Making Public Decisions</h2>
+        <p className="text-xs text-pd-text-light mb-2">1-2 paragraphs identifying decision-makers: agencies, boards, commissions, or officials. Pre-filled by AI — review and edit.</p>
+        <textarea
+          value={whosDeciding}
+          onChange={(e) => setWhosDeciding(e.target.value)}
+          placeholder="Which agencies, boards, or officials are making the key decisions? Include upcoming decision points..."
+          rows={4}
+          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+        />
+      </div>
+
       {/* Related to this article - AI suggestions */}
       {detectedIssues?.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -756,19 +784,17 @@ export default function BuilderTab({
           </p>
         </div>
 
-        {/* Freeform Notes */}
+        {/* What to watch for next — AI-prepopulated, editable */}
         <div className="bg-white rounded-lg shadow-md p-5">
-          <h2 className="font-heading font-bold text-base text-pd-text mb-3">📝 Additional Notes</h2>
+          <h2 className="font-heading font-bold text-base text-pd-text mb-2">👀 What to Watch for Next</h2>
+          <p className="text-xs text-pd-text-light mb-2">1-2 sentences about upcoming votes, rulings, or deadlines. Pre-filled by AI — review and edit.</p>
           <textarea
-            value={customNotes}
-            onChange={(e) => setCustomNotes(e.target.value)}
-            placeholder="Add any custom context, background info, or notes for readers..."
-            rows={4}
+            value={whatToWatch}
+            onChange={(e) => setWhatToWatch(e.target.value)}
+            placeholder="What should readers watch for next? Upcoming votes, rulings, deadlines..."
+            rows={2}
             className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
           />
-          <p className="text-xs text-pd-text-light mt-2 italic">
-            This text will appear at the top of the civic action box.
-          </p>
         </div>
       </div>
     </div>

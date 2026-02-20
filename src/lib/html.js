@@ -41,14 +41,27 @@ export function trackLink(url, contentLabel) {
 
 // Generate the civic action box HTML from the provided data
 // When interactiveCheckboxes is true, adds checkboxes + inline JS for GA4 tracking and email capture
-export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], customNotes = '', interactiveCheckboxes = false } = {}) {
+export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], whyItMatters = '', whosDeciding = '', whatToWatch = '', interactiveCheckboxes = false } = {}) {
   let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
   <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Civic Action Toolbox</h3>\n`
 
-  // Add custom notes at the top if present (sanitized)
-  if (customNotes?.trim()) {
-    html += `  <div style="margin-bottom: 16px; font-size: 14px; color: #333; line-height: 1.5;">
-    ${DOMPurify.sanitize(customNotes.replace(/\n/g, '<br>'), { ALLOWED_TAGS: ['br', 'b', 'i', 'em', 'strong', 'a'], ALLOWED_ATTR: ['href'] })}
+  // "Why it matters" — renders first, after the title
+  if (whyItMatters?.trim()) {
+    html += `  <div style="margin-bottom: 16px;">
+    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Why it matters</h4>
+    <div style="font-size: 14px; color: #333; line-height: 1.5;">
+      ${DOMPurify.sanitize(esc(whyItMatters).replace(/\n/g, '<br>'), { ALLOWED_TAGS: ['br'] })}
+    </div>
+  </div>\n`
+  }
+
+  // "Who's making public decisions" — renders after "Why it matters"
+  if (whosDeciding?.trim()) {
+    html += `  <div style="margin-bottom: 16px;">
+    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">${esc("Who's making public decisions")}</h4>
+    <div style="font-size: 14px; color: #333; line-height: 1.5;">
+      ${DOMPurify.sanitize(esc(whosDeciding).replace(/\n/g, '<br>'), { ALLOWED_TAGS: ['br'] })}
+    </div>
   </div>\n`
   }
 
@@ -151,6 +164,14 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   </div>\n`
   }
 
+  // "What to watch for next" — renders after organizations, before email CTA
+  if (whatToWatch?.trim()) {
+    html += `  <div style="margin-bottom: 16px;">
+    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">What to watch for next</h4>
+    <p style="font-size: 14px; color: #333; line-height: 1.5;">${esc(whatToWatch)}</p>
+  </div>\n`
+  }
+
   // Interactive email capture form (hidden until first checkbox is checked)
   if (interactiveCheckboxes) {
     html += `  <div id="civic-email-section" style="display: none; margin: 16px 0 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">
@@ -166,12 +187,23 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   html += `  <p style="font-size: 13px; color: #333; margin: 16px 0 12px 0; font-style: italic;">
     If you take civic action please let us know — email us at <a href="mailto:connect@planetdetroit.org" style="color: #2f80c3;">connect@planetdetroit.org</a>.
   </p>
+  <div id="civic-response-form" style="margin: 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">
+    <p style="font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Tell us what action you took</p>
+    <form id="civic-response-submit">
+      <textarea id="civic-response-message" placeholder="I attended a meeting, contacted my rep, submitted a comment..." required style="width: 100%; box-sizing: border-box; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 50px; margin-bottom: 6px;"></textarea>
+      <div style="display: flex; gap: 8px;">
+        <input type="email" id="civic-response-email" placeholder="Email (optional)" style="flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+        <button type="submit" style="padding: 6px 14px; background: #2f80c3; color: white; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 600;">Submit</button>
+      </div>
+    </form>
+    <p id="civic-response-thanks" style="display: none; font-size: 13px; color: #2f80c3; margin: 8px 0 0 0; font-weight: 600;">Thank you! Your response has been recorded.</p>
+  </div>
   <p style="font-size: 11px; color: #888; margin: 0; padding-top: 12px; border-top: 1px solid #d0d8e0;">
     Civic resources compiled by <a href="https://planetdetroit.org" style="color: #2f80c3;">Planet Detroit</a>
   </p>
 </div>`
 
-  // Inline script for checkbox interaction, GA4 events, and email submission
+  // Inline script for checkbox interaction (GA4 events, old email capture)
   if (interactiveCheckboxes) {
     html += `\n<script>
 (function() {
@@ -181,7 +213,6 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   var emailSection = document.getElementById('civic-email-section');
   var emailForm = document.getElementById('civic-email-form');
   var emailThanks = document.getElementById('civic-email-thanks');
-  var articleUrl = window.location.href;
 
   checks.forEach(function(cb) {
     cb.addEventListener('change', function() {
@@ -191,45 +222,49 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
         gtag('event', cb.checked ? 'civic_action_taken' : 'civic_action_untaken', {
           action_label: action,
           action_detail: label,
-          article_url: articleUrl
+          article_url: window.location.href
         });
       }
-      // Show email section after first check
       var anyChecked = box.querySelector('.civic-checkbox:checked');
       if (anyChecked && emailSection) emailSection.style.display = 'block';
     });
   });
-
-  if (emailForm) {
-    emailForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      var email = document.getElementById('civic-email-input').value;
-      var actions = [];
-      checks.forEach(function(cb) {
-        if (cb.checked) actions.push(cb.getAttribute('data-action'));
-      });
-      if (!email || actions.length === 0) return;
-      fetch('https://ask-planet-detroit-production.up.railway.app/api/civic-responses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email,
-          article_url: articleUrl,
-          actions_taken: actions,
-          article_title: document.title
-        })
-      }).then(function() {
-        emailForm.style.display = 'none';
-        if (emailThanks) emailThanks.style.display = 'block';
-      }).catch(function() {
-        emailForm.style.display = 'none';
-        if (emailThanks) emailThanks.style.display = 'block';
-      });
-    });
-  }
 })();
 </script>`
   }
+
+  // Inline script for reader response form submission
+  html += `\n<script>
+(function() {
+  var form = document.getElementById('civic-response-submit');
+  var thanks = document.getElementById('civic-response-thanks');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var msg = document.getElementById('civic-response-message').value.trim();
+    var email = document.getElementById('civic-response-email').value.trim();
+    if (!msg) return;
+    var payload = {
+      message: msg,
+      article_url: window.location.href,
+      article_title: document.title
+    };
+    if (email) payload.email = email;
+    fetch('https://ask-planet-detroit-production.up.railway.app/api/civic-responses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function() {
+      form.style.display = 'none';
+      if (thanks) thanks.style.display = 'block';
+    }).catch(function() {
+      form.style.display = 'none';
+      if (thanks) thanks.style.display = 'block';
+    });
+  });
+})();
+</script>`
 
   return html
 }

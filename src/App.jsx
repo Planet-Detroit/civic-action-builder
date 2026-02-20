@@ -56,7 +56,9 @@ function AuthenticatedApp({ onSignOut }) {
   const [commentPeriods, setCommentPeriods] = useState(saved?.commentPeriods || [])
   const [officials, setOfficials] = useState(saved?.officials || [])
   const [actions, setActions] = useState(saved?.actions || [])
-  const [customNotes, setCustomNotes] = useState(saved?.customNotes || '')
+  const [whyItMatters, setWhyItMatters] = useState(saved?.whyItMatters || '')
+  const [whosDeciding, setWhosDeciding] = useState(saved?.whosDeciding || '')
+  const [whatToWatch, setWhatToWatch] = useState(saved?.whatToWatch || '')
 
   // Available options from database
   const [allMeetings, setAllMeetings] = useState([])
@@ -75,13 +77,15 @@ function AuthenticatedApp({ onSignOut }) {
   // Auto-save builder state to localStorage
   useEffect(() => {
     const hasContent = articleData || analysis || organizations.length || meetings.length ||
-      commentPeriods.length || officials.length || actions.length || customNotes.trim()
+      commentPeriods.length || officials.length || actions.length ||
+      whyItMatters.trim() || whosDeciding.trim() || whatToWatch.trim()
     if (!hasContent) return
     saveState({
       activeTab, articleData, analysis,
-      organizations, meetings, commentPeriods, officials, actions, customNotes
+      organizations, meetings, commentPeriods, officials, actions,
+      whyItMatters, whosDeciding, whatToWatch
     })
-  }, [activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, customNotes])
+  }, [activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch])
 
   const handleNewArticle = () => {
     clearSavedState()
@@ -93,11 +97,14 @@ function AuthenticatedApp({ onSignOut }) {
     setCommentPeriods([])
     setOfficials([])
     setActions([])
-    setCustomNotes('')
+    setWhyItMatters('')
+    setWhosDeciding('')
+    setWhatToWatch('')
   }
 
   const hasSavedState = !!(articleData || analysis || organizations.length || meetings.length ||
-    commentPeriods.length || officials.length || actions.length || customNotes.trim())
+    commentPeriods.length || officials.length || actions.length ||
+    whyItMatters.trim() || whosDeciding.trim() || whatToWatch.trim())
 
   // When analysis completes, pre-populate builder with suggestions
   const handleAnalysisComplete = (result) => {
@@ -142,6 +149,11 @@ function AuthenticatedApp({ onSignOut }) {
     if (result.civic_actions) {
       setActions(result.civic_actions.slice(0, 4))
     }
+
+    // Pre-populate the new context sections from AI analysis
+    if (result.why_it_matters) setWhyItMatters(result.why_it_matters)
+    if (result.whos_deciding) setWhosDeciding(result.whos_deciding)
+    if (result.what_to_watch) setWhatToWatch(result.what_to_watch)
 
     setActiveTab('builder')
   }
@@ -204,8 +216,12 @@ function AuthenticatedApp({ onSignOut }) {
             allOrgs={allOrgs}
             allOfficials={allOfficials}
             detectedIssues={analysis?.detected_issues}
-            customNotes={customNotes}
-            setCustomNotes={setCustomNotes}
+            whyItMatters={whyItMatters}
+            setWhyItMatters={setWhyItMatters}
+            whosDeciding={whosDeciding}
+            setWhosDeciding={setWhosDeciding}
+            whatToWatch={whatToWatch}
+            setWhatToWatch={setWhatToWatch}
           />
         )}
 
@@ -216,7 +232,9 @@ function AuthenticatedApp({ onSignOut }) {
             commentPeriods={commentPeriods}
             officials={officials}
             actions={actions}
-            customNotes={customNotes}
+            whyItMatters={whyItMatters}
+            whosDeciding={whosDeciding}
+            whatToWatch={whatToWatch}
           />
         )}
       </main>

@@ -51,4 +51,35 @@ describe('storage', () => {
     localStorage.setItem('civic-action-builder-state', 'not-valid-json{{{')
     expect(loadSavedState()).toBeNull()
   })
+
+  // New context fields round-trip through localStorage
+  it('round-trips whyItMatters, whosDeciding, whatToWatch', () => {
+    const state = {
+      whyItMatters: 'This matters because...',
+      whosDeciding: 'EGLE regulators are...',
+      whatToWatch: 'Watch for the final rule.',
+    }
+    saveState(state)
+    const loaded = loadSavedState()
+    expect(loaded.whyItMatters).toBe('This matters because...')
+    expect(loaded.whosDeciding).toBe('EGLE regulators are...')
+    expect(loaded.whatToWatch).toBe('Watch for the final rule.')
+  })
+
+  // Fields restored after page refresh (simulated by save+load)
+  it('restores all three new fields from localStorage', () => {
+    const state = {
+      activeTab: 'builder',
+      whyItMatters: 'Context A',
+      whosDeciding: 'Context B',
+      whatToWatch: 'Context C',
+      organizations: [{ name: 'Test Org' }],
+    }
+    saveState(state)
+    const loaded = loadSavedState()
+    expect(loaded.whyItMatters).toBe('Context A')
+    expect(loaded.whosDeciding).toBe('Context B')
+    expect(loaded.whatToWatch).toBe('Context C')
+    expect(loaded.organizations).toEqual([{ name: 'Test Org' }])
+  })
 })

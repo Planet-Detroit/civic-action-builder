@@ -191,12 +191,6 @@ describe('generateHTML', () => {
     expect(html).toContain('Sierra Club')
   })
 
-  // Should include custom notes at the top
-  it('includes custom notes', () => {
-    const html = generateHTML({ customNotes: 'Important context here' })
-    expect(html).toContain('Important context here')
-  })
-
   // Should omit sections with empty arrays
   it('omits empty sections', () => {
     const html = generateHTML({ meetings: [], officials: [] })
@@ -225,6 +219,156 @@ describe('generateHTML', () => {
   })
 })
 
+// =========================================================================
+// New context sections: Why it matters, Who's deciding, What to watch
+// =========================================================================
+
+describe('generateHTML — new context sections', () => {
+  // "Why it matters" should render at the top, after the title
+  it('includes "Why it matters" section when provided', () => {
+    const html = generateHTML({ whyItMatters: 'This affects drinking water for 4 million residents.' })
+    expect(html).toContain('Why it matters')
+    expect(html).toContain('This affects drinking water for 4 million residents.')
+  })
+
+  // "Who's making public decisions" should render after "Why it matters"
+  it('includes "Who\'s making public decisions" section when provided', () => {
+    const html = generateHTML({ whosDeciding: 'EGLE regulators are setting new PFAS limits.' })
+    expect(html).toContain("Who&#39;s making public decisions")
+    expect(html).toContain('EGLE regulators are setting new PFAS limits.')
+  })
+
+  // "What to watch for next" should render after organizations
+  it('includes "What to watch for next" section when provided', () => {
+    const html = generateHTML({ whatToWatch: 'Final rule expected in March 2026.' })
+    expect(html).toContain('What to watch for next')
+    expect(html).toContain('Final rule expected in March 2026.')
+  })
+
+  // Empty fields should be omitted from output (not rendered as empty sections)
+  it('omits "Why it matters" when empty', () => {
+    const html = generateHTML({ whyItMatters: '' })
+    expect(html).not.toContain('Why it matters')
+  })
+
+  it('omits "Who\'s making public decisions" when empty', () => {
+    const html = generateHTML({ whosDeciding: '' })
+    expect(html).not.toContain("making public decisions")
+  })
+
+  it('omits "What to watch for next" when empty', () => {
+    const html = generateHTML({ whatToWatch: '' })
+    expect(html).not.toContain('What to watch for next')
+  })
+
+  // All sections omitted when fields are undefined
+  it('omits all new sections when undefined', () => {
+    const html = generateHTML({})
+    expect(html).not.toContain('Why it matters')
+    expect(html).not.toContain('making public decisions')
+    expect(html).not.toContain('What to watch for next')
+  })
+
+  // Section ORDER: Why it matters → Who's deciding → meetings → comment periods → officials → actions → orgs → What to watch → email CTA → response form → footer
+  it('renders sections in correct order', () => {
+    const html = generateHTML({
+      whyItMatters: 'WHY_MARKER',
+      whosDeciding: 'WHOS_MARKER',
+      meetings: [{ title: 'MEETING_MARKER', start_datetime: '2025-03-15T10:00:00' }],
+      organizations: [{ name: 'ORG_MARKER', url: 'https://example.com' }],
+      whatToWatch: 'WATCH_MARKER',
+    })
+    const whyPos = html.indexOf('WHY_MARKER')
+    const whosPos = html.indexOf('WHOS_MARKER')
+    const meetingPos = html.indexOf('MEETING_MARKER')
+    const orgPos = html.indexOf('ORG_MARKER')
+    const watchPos = html.indexOf('WATCH_MARKER')
+
+    expect(whyPos).toBeLessThan(whosPos)
+    expect(whosPos).toBeLessThan(meetingPos)
+    expect(meetingPos).toBeLessThan(orgPos)
+    expect(orgPos).toBeLessThan(watchPos)
+  })
+
+  // XSS: should escape HTML in new text fields
+  it('escapes XSS in whyItMatters', () => {
+    const html = generateHTML({ whyItMatters: '<script>alert("xss")</script>' })
+    expect(html).not.toContain('<script>alert')
+  })
+
+  // Multi-line text should render with line breaks
+  it('renders line breaks in whyItMatters', () => {
+    const html = generateHTML({ whyItMatters: 'Line one\nLine two' })
+    expect(html).toContain('Line one')
+    expect(html).toContain('Line two')
+  })
+})
+
+// =========================================================================
+// Reader response form in HTML output
+// =========================================================================
+
+describe('generateHTML — reader response form', () => {
+  // Response form should always be included (it's part of the civic action box)
+  it('includes the response form at the bottom', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+    })
+    expect(html).toContain('civic-response-form')
+    expect(html).toContain('Tell us what action you took')
+  })
+
+  // Response form should have a textarea for the message
+  it('has a message textarea', () => {
+    const html = generateHTML({
+      organizations: [{ name: 'Test', url: 'https://test.com' }],
+    })
+    expect(html).toContain('civic-response-message')
+  })
+
+  // Response form should have an optional email input
+  it('has an optional email input', () => {
+    const html = generateHTML({
+      organizations: [{ name: 'Test', url: 'https://test.com' }],
+    })
+    expect(html).toContain('civic-response-email')
+  })
+
+  // Response form should have a submit button
+  it('has a submit button', () => {
+    const html = generateHTML({
+      organizations: [{ name: 'Test', url: 'https://test.com' }],
+    })
+    expect(html).toContain('type="submit"')
+  })
+
+  // Response form should render AFTER the email CTA
+  it('renders response form after email CTA', () => {
+    const html = generateHTML({
+      organizations: [{ name: 'Test', url: 'https://test.com' }],
+    })
+    const ctaPos = html.indexOf('connect@planetdetroit.org')
+    const formPos = html.indexOf('civic-response-form')
+    expect(ctaPos).toBeLessThan(formPos)
+  })
+
+  // Response form should post to the civic-responses API
+  it('posts to civic-responses API endpoint', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+    })
+    expect(html).toContain('/api/civic-responses')
+  })
+
+  // Response form shows thank-you after submission
+  it('includes a thank-you confirmation element', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+    })
+    expect(html).toContain('civic-response-thanks')
+  })
+})
+
 describe('generateHTML with interactiveCheckboxes', () => {
   const sampleData = {
     meetings: [{ title: 'Test Meeting', start_datetime: '2025-03-15T10:00:00', agency: 'EGLE' }],
@@ -238,7 +382,8 @@ describe('generateHTML with interactiveCheckboxes', () => {
     const html = generateHTML(sampleData)
     expect(html).not.toContain('civic-checkbox')
     expect(html).not.toContain('type="checkbox"')
-    expect(html).not.toContain('<script>')
+    // Should not contain the checkbox GA4 tracking script
+    expect(html).not.toContain('civic_action_taken')
   })
 
   // Checkboxes present when flag is true
@@ -292,9 +437,12 @@ describe('generateHTML with interactiveCheckboxes', () => {
     expect(html).toContain('/api/civic-responses')
   })
 
-  // No script when flag is false
-  it('excludes script when interactiveCheckboxes is false', () => {
+  // Checkbox GA4 script excluded when flag is false (response form script is always present)
+  it('excludes checkbox tracking script when interactiveCheckboxes is false', () => {
     const html = generateHTML({ ...sampleData, interactiveCheckboxes: false })
-    expect(html).not.toContain('<script>')
+    expect(html).not.toContain('civic_action_taken')
+    expect(html).not.toContain('civic-checkbox')
+    // Response form script should still be present
+    expect(html).toContain('civic-response-submit')
   })
 })

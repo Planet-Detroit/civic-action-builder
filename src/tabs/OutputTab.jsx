@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { generateHTML } from '../lib/html.js'
 import { buildCalendarLinks } from '../lib/calendar.js'
 
-export default function OutputTab({ organizations, meetings, commentPeriods, officials, actions, customNotes }) {
+export default function OutputTab({ organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch }) {
   const [copied, setCopied] = useState(false)
   const [interactiveCheckboxes, setInteractiveCheckboxes] = useState(false)
 
-  const html = generateHTML({ meetings, commentPeriods, officials, actions, organizations, customNotes, interactiveCheckboxes })
+  const html = generateHTML({ meetings, commentPeriods, officials, actions, organizations, whyItMatters, whosDeciding, whatToWatch, interactiveCheckboxes })
 
   const handleCopy = () => {
     navigator.clipboard.writeText(html)
@@ -14,7 +14,7 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const isEmpty = organizations.length === 0 && meetings.length === 0 && commentPeriods.length === 0 && officials.length === 0 && actions.length === 0 && !customNotes?.trim()
+  const isEmpty = organizations.length === 0 && meetings.length === 0 && commentPeriods.length === 0 && officials.length === 0 && actions.length === 0 && !whyItMatters?.trim() && !whosDeciding?.trim() && !whatToWatch?.trim()
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -33,12 +33,27 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
                 🗳️ Civic Action Toolbox
               </h3>
 
-              {/* Custom notes at the top */}
-              {customNotes?.trim() && (
-                <div className="mb-4 text-sm text-pd-text leading-relaxed">
-                  {customNotes.split('\n').map((line, i) => (
-                    <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
-                  ))}
+              {/* Why it matters */}
+              {whyItMatters?.trim() && (
+                <div className="mb-4">
+                  <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Why it matters</h4>
+                  <div className="text-sm text-pd-text leading-relaxed">
+                    {whyItMatters.split('\n').map((line, i) => (
+                      <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Who's making public decisions */}
+              {whosDeciding?.trim() && (
+                <div className="mb-4">
+                  <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Who's making public decisions</h4>
+                  <div className="text-sm text-pd-text leading-relaxed">
+                    {whosDeciding.split('\n').map((line, i) => (
+                      <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -171,10 +186,34 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
                 </div>
               )}
 
+              {/* What to watch for next */}
+              {whatToWatch?.trim() && (
+                <div className="mb-4">
+                  <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">What to watch for next</h4>
+                  <p className="text-sm text-pd-text leading-relaxed">{whatToWatch}</p>
+                </div>
+              )}
+
               <p className="text-sm text-pd-text italic mt-4">
                 If you take civic action please let us know — email us at{' '}
                 <a href="mailto:connect@planetdetroit.org" className="text-pd-blue">connect@planetdetroit.org</a>.
               </p>
+
+              {/* Reader response form preview */}
+              <div className="mt-3 p-3 bg-[#e8f0fe] rounded-md">
+                <p className="text-xs font-semibold text-pd-text mb-2">Tell us what action you took</p>
+                <textarea
+                  disabled
+                  placeholder="I attended a meeting, contacted my rep, submitted a comment..."
+                  rows={2}
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-xs mb-1 bg-white"
+                />
+                <div className="flex gap-2">
+                  <input disabled type="email" placeholder="Email (optional)" className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white" />
+                  <button disabled className="px-3 py-1 bg-pd-blue text-white text-xs rounded opacity-75">Submit</button>
+                </div>
+              </div>
+
               <p className="text-xs text-pd-text-light mt-3 pt-3 border-t border-[#d0d8e0]">
                 Civic resources compiled by <a href="https://planetdetroit.org" className="text-pd-blue">Planet Detroit</a>
               </p>
