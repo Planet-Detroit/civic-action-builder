@@ -45,23 +45,28 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
               {meetings.length > 0 && (
                 <div className="mb-4">
                   <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Upcoming Meetings</h4>
-                  <ul className="list-disc list-inside space-y-1">
+                  <ul className={`${interactiveCheckboxes ? 'list-none' : 'list-disc list-inside'} space-y-1`}>
                     {meetings.map((meeting, i) => {
                       const cal = buildCalendarLinks(meeting)
                       return (
                         <li key={i} className="text-sm">
-                          <strong>{meeting.title}</strong>
-                          <span className="text-pd-text-light"> — {new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
-                          {meeting.agency && <span className="text-pd-text-light"> ({meeting.agency})</span>}
-                          {(meeting.agenda_url || meeting.details_url || meeting.virtual_url) && (
-                            <a href={meeting.agenda_url || meeting.details_url || meeting.virtual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1 text-xs">Details</a>
-                          )}
-                          <br />
-                          <span className="text-xs text-pd-text-light">
-                            <a href={cal.google} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cal</a>
-                            {' · '}
-                            <a href={cal.outlook} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Outlook</a>
-                          </span>
+                          <label className={`${interactiveCheckboxes ? 'flex items-start gap-1.5 cursor-pointer' : ''}`}>
+                            {interactiveCheckboxes && <input type="checkbox" className="mt-1 cursor-pointer" />}
+                            <span>
+                              <strong>{meeting.title}</strong>
+                              <span className="text-pd-text-light"> — {new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                              {meeting.agency && <span className="text-pd-text-light"> ({meeting.agency})</span>}
+                              {(meeting.agenda_url || meeting.details_url || meeting.virtual_url) && (
+                                <a href={meeting.agenda_url || meeting.details_url || meeting.virtual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1 text-xs">Details</a>
+                              )}
+                              <br />
+                              <span className="text-xs text-pd-text-light">
+                                <a href={cal.google} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cal</a>
+                                {' · '}
+                                <a href={cal.outlook} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Outlook</a>
+                              </span>
+                            </span>
+                          </label>
                         </li>
                       )
                     })}
@@ -72,31 +77,36 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
               {commentPeriods.length > 0 && (
                 <div className="mb-4">
                   <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Open Comment Periods</h4>
-                  <ul className="list-disc list-inside space-y-2">
+                  <ul className={`${interactiveCheckboxes ? 'list-none' : 'list-disc list-inside'} space-y-2`}>
                     {commentPeriods.map((period, i) => (
                       <li key={i} className="text-sm">
-                        {period.comment_url ? (
-                          <a href={period.comment_url} target="_blank" rel="noopener noreferrer" className="text-pd-blue hover:underline font-semibold">{period.title}</a>
-                        ) : (
-                          <strong>{period.title}</strong>
-                        )}
-                        {period.agency && <span className="text-pd-text-light"> ({period.agency})</span>}
-                        {period.end_date && (
-                          <>
-                            <br />
-                            <span className="text-xs text-pd-text-light">
-                              Deadline: {new Date(period.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              {period.days_remaining != null && (
-                                <span className={period.days_remaining <= 7 ? 'text-red-600 font-semibold ml-1' : 'ml-1'}>
-                                  — {period.days_remaining} days left
+                        <label className={`${interactiveCheckboxes ? 'flex items-start gap-1.5 cursor-pointer' : ''}`}>
+                          {interactiveCheckboxes && <input type="checkbox" className="mt-1 cursor-pointer" />}
+                          <span>
+                            {period.comment_url ? (
+                              <a href={period.comment_url} target="_blank" rel="noopener noreferrer" className="text-pd-blue hover:underline font-semibold">{period.title}</a>
+                            ) : (
+                              <strong>{period.title}</strong>
+                            )}
+                            {period.agency && <span className="text-pd-text-light"> ({period.agency})</span>}
+                            {period.end_date && (
+                              <>
+                                <br />
+                                <span className="text-xs text-pd-text-light">
+                                  Deadline: {new Date(period.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  {period.days_remaining != null && (
+                                    <span className={period.days_remaining <= 7 ? 'text-red-600 font-semibold ml-1' : 'ml-1'}>
+                                      — {period.days_remaining} days left
+                                    </span>
+                                  )}
                                 </span>
-                              )}
-                            </span>
-                          </>
-                        )}
-                        {period.description && (
-                          <p className="text-xs text-pd-text-light mt-0.5">{period.description.slice(0, 150)}</p>
-                        )}
+                              </>
+                            )}
+                            {period.description && (
+                              <p className="text-xs text-pd-text-light mt-0.5">{period.description.slice(0, 150)}</p>
+                            )}
+                          </span>
+                        </label>
                       </li>
                     ))}
                   </ul>
@@ -109,9 +119,14 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
                   <ul className="space-y-2">
                     {officials.map((official, i) => (
                       <li key={i} className="text-sm">
-                        <strong>{official.name}</strong> ({official.party})<br />
-                        <span className="text-xs text-pd-text-light">{official.office}</span><br />
-                        <a href={`mailto:${official.email}`} className="text-xs text-pd-blue">{official.email}</a>
+                        <label className={`${interactiveCheckboxes ? 'flex items-start gap-1.5 cursor-pointer' : ''}`}>
+                          {interactiveCheckboxes && <input type="checkbox" className="mt-1 cursor-pointer" />}
+                          <span>
+                            <strong>{official.name}</strong> ({official.party})<br />
+                            <span className="text-xs text-pd-text-light">{official.office}</span><br />
+                            <a href={`mailto:${official.email}`} className="text-xs text-pd-blue">{official.email}</a>
+                          </span>
+                        </label>
                       </li>
                     ))}
                   </ul>
@@ -124,14 +139,19 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
                   <ul className="space-y-2">
                     {actions.map((action, i) => (
                       <li key={i} className="text-sm">
-                        {action.url ? (
-                          <a href={action.url} className="text-pd-blue hover:underline font-semibold">{action.title}</a>
-                        ) : (
-                          <span className="font-semibold">{action.title}</span>
-                        )}
-                        {action.description && (
-                          <p className="text-xs text-pd-text-light mt-0.5">{action.description}</p>
-                        )}
+                        <label className={`${interactiveCheckboxes ? 'flex items-start gap-1.5 cursor-pointer' : ''}`}>
+                          {interactiveCheckboxes && <input type="checkbox" className="mt-1 cursor-pointer" />}
+                          <span>
+                            {action.url ? (
+                              <a href={action.url} className="text-pd-blue hover:underline font-semibold">{action.title}</a>
+                            ) : (
+                              <span className="font-semibold">{action.title}</span>
+                            )}
+                            {action.description && (
+                              <p className="text-xs text-pd-text-light mt-0.5">{action.description}</p>
+                            )}
+                          </span>
+                        </label>
                       </li>
                     ))}
                   </ul>
