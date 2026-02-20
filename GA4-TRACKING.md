@@ -117,6 +117,38 @@ The `utm_content` parameter tells you exactly what was clicked:
 
 ---
 
+## Interactive Checkbox Events
+
+When "Include interactive checkboxes" is enabled in the Output tab, the generated HTML includes inline JavaScript that fires GA4 events when readers interact with checkboxes.
+
+### Events
+
+| Event Name | When Fired | Data |
+|-----------|-----------|------|
+| `civic_action_taken` | Reader checks a checkbox | `action_label`, `action_detail`, `article_url` |
+| `civic_action_untaken` | Reader unchecks a checkbox | `action_label`, `action_detail`, `article_url` |
+
+### Event Parameters
+
+| Parameter | Description | Examples |
+|-----------|-------------|---------|
+| `action_label` | Type of civic action | `attend_meeting`, `submit_comment`, `contact_official` |
+| `action_detail` | Specific item name | `MPSC Public Hearing`, `Water Rules`, `Jane Doe` |
+| `article_url` | Page URL where the box appears | `https://planetdetroit.org/2025/01/...` |
+
+### Viewing in GA4
+
+1. Go to **Reports > Engagement > Events**
+2. Look for `civic_action_taken` events
+3. Click into the event to see `action_label` and `action_detail` breakdowns
+4. Use **GA4 DebugView** to verify events fire correctly during testing
+
+### Email Submission
+
+After checking a box, readers see an email capture form. Submissions go to `POST /api/civic-responses` on the backend, which stores them in the `civic_responses` Supabase table. This data can be queried for engagement metrics.
+
+---
+
 ## Notes
 
 - UTM parameters are only added to **external links** in the generated HTML (not mailto: links or the Planet Detroit self-links).

@@ -76,15 +76,50 @@ npm run dev
 
 ---
 
-## Architecture Notes
+## File Structure
 
-The entire frontend is in `src/App.jsx` (1,914 lines). This is a known technical debt item from the audit. When doing significant new development, consider splitting into:
-- `App.jsx` — layout and routing
-- `ArticleInput.jsx` — article URL/text input tab
-- `Builder.jsx` — AI analysis and action builder tab
-- `Output.jsx` — HTML output tab
-- `api.js` — backend API calls
-- `html.js` — HTML generation logic
+```
+src/
+  App.jsx              (~275 lines)  Auth, state management, tab routing
+  LoginPage.jsx        (~90 lines)   Login form
+  ToolNav.jsx          (~40 lines)   PD Tools navigation bar
+  main.jsx             (unchanged)   React entry point
+  index.css            (unchanged)   Tailwind CSS entry
+  tabs/
+    ArticleInputTab.jsx  (~215 lines)  Article fetch + AI analysis
+    BuilderTab.jsx       (~775 lines)  Search/filter/add civic items
+    OutputTab.jsx        (~195 lines)  Preview + HTML output + copy
+  lib/
+    constants.js       (~25 lines)   API config, issue-to-agency mapping
+    api.js             (~100 lines)  All backend API fetch functions
+    calendar.js        (~20 lines)   Google/Outlook calendar link builder
+    html.js            (~200 lines)  HTML generation (with optional checkboxes)
+    storage.js         (~35 lines)   localStorage save/load/clear
+    __tests__/
+      api.test.js      Slug extraction tests
+      calendar.test.js Calendar link format tests
+      html.test.js     HTML generation, XSS, UTM, checkbox tests
+      storage.test.js  localStorage round-trip, expiry tests
+```
+
+Run tests: `npm run test`
+Run dev server: `npm run dev`
+
+---
+
+## Interactive Checkboxes (Optional Feature)
+
+When generating HTML, editors can enable "Include interactive checkboxes" in the Output tab. This adds:
+
+- **Checkboxes** next to each action item (meetings, comment periods, officials, actions)
+- **GA4 event tracking** — fires `civic_action_taken` / `civic_action_untaken` events
+- **Email capture form** — appears after a reader checks their first box
+- **Backend submission** — reader's actions are recorded via `POST /api/civic-responses`
+
+Checkboxes are **off by default** for backwards compatibility. The feature requires:
+- The civic action box to be pasted into a WordPress "Custom HTML" block
+- GA4 to be set up on planetdetroit.org (for event tracking)
+- The `civic_responses` Supabase table to exist (run `api/migrations/civic_responses.sql`)
 
 ---
 
