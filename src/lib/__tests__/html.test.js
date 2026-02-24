@@ -315,7 +315,7 @@ describe('generateHTML — reader response form', () => {
       meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
     })
     expect(html).toContain('civic-response-form')
-    expect(html).toContain('Tell us what action you took')
+    expect(html).toContain('Did you take action? Let us know.')
   })
 
   // Response form should have a textarea for the message
@@ -342,14 +342,14 @@ describe('generateHTML — reader response form', () => {
     expect(html).toContain('type="submit"')
   })
 
-  // Response form should render AFTER the email CTA
-  it('renders response form after email CTA', () => {
+  // Response form should render AFTER the main content sections
+  it('renders response form after content sections', () => {
     const html = generateHTML({
       organizations: [{ name: 'Test', url: 'https://test.com' }],
     })
-    const ctaPos = html.indexOf('connect@planetdetroit.org')
+    const orgPos = html.indexOf('Test')
     const formPos = html.indexOf('civic-response-form')
-    expect(ctaPos).toBeLessThan(formPos)
+    expect(orgPos).toBeLessThan(formPos)
   })
 
   // Response form should post to the civic-responses API
@@ -377,12 +377,18 @@ describe('generateHTML with interactiveCheckboxes', () => {
     commentPeriods: [{ title: 'Water Rules', agency: 'EGLE', comment_url: 'https://example.com/comment' }],
   }
 
-  // Backwards compatible: default = no checkboxes
-  it('has no checkboxes by default', () => {
+  // Default = checkboxes ON (interactiveCheckboxes defaults to true)
+  it('includes checkboxes by default', () => {
     const html = generateHTML(sampleData)
+    expect(html).toContain('civic-checkbox')
+    expect(html).toContain('type="checkbox"')
+    expect(html).toContain('civic_action_taken')
+  })
+
+  // Explicit false = no checkboxes
+  it('has no checkboxes when interactiveCheckboxes is false', () => {
+    const html = generateHTML({ ...sampleData, interactiveCheckboxes: false })
     expect(html).not.toContain('civic-checkbox')
-    expect(html).not.toContain('type="checkbox"')
-    // Should not contain the checkbox GA4 tracking script
     expect(html).not.toContain('civic_action_taken')
   })
 
@@ -423,15 +429,7 @@ describe('generateHTML with interactiveCheckboxes', () => {
     expect(html).toContain('civic_action_untaken')
   })
 
-  // Hidden email form present
-  it('includes hidden email capture form', () => {
-    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
-    expect(html).toContain('civic-email-form')
-    expect(html).toContain('civic-email-input')
-    expect(html).toContain('display: none')
-  })
-
-  // Email form submits to backend
+  // Response form submits to backend
   it('submits to civic-responses API endpoint', () => {
     const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
     expect(html).toContain('/api/civic-responses')
@@ -444,5 +442,57 @@ describe('generateHTML with interactiveCheckboxes', () => {
     expect(html).not.toContain('civic-checkbox')
     // Response form script should still be present
     expect(html).toContain('civic-response-submit')
+  })
+
+  // Organizations should get checkboxes with explore_organization action
+  it('adds checkboxes to organizations when interactiveCheckboxes is true', () => {
+    const html = generateHTML({
+      organizations: [{ name: 'Sierra Club', url: 'https://sierraclub.org' }],
+      interactiveCheckboxes: true,
+    })
+    expect(html).toContain('data-action="explore_organization"')
+    expect(html).toContain('data-label="Sierra Club"')
+    expect(html).toContain('civic-checkbox')
+  })
+
+  // Organizations should NOT have checkboxes when flag is false
+  it('no checkboxes on organizations when interactiveCheckboxes is false', () => {
+    const html = generateHTML({
+      organizations: [{ name: 'Sierra Club', url: 'https://sierraclub.org' }],
+      interactiveCheckboxes: false,
+    })
+    expect(html).not.toContain('data-action="explore_organization"')
+    expect(html).not.toContain('civic-checkbox')
+  })
+})
+
+describe('generateHTML — consolidated reader form', () => {
+  // The consolidated form should always render with the updated heading
+  it('shows "Did you take action?" heading', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+    })
+    expect(html).toContain('Did you take action? Let us know.')
+  })
+
+  // There should be no separate email capture form
+  it('does not include separate email capture form', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+    })
+    expect(html).not.toContain('civic-email-section')
+    expect(html).not.toContain('civic-email-form')
+    expect(html).not.toContain('civic-email-input')
+  })
+
+  // Consolidated form should be present regardless of interactiveCheckboxes
+  it('includes response form when interactiveCheckboxes is false', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+      interactiveCheckboxes: false,
+    })
+    expect(html).toContain('civic-response-form')
+    expect(html).toContain('civic-response-message')
+    expect(html).toContain('civic-response-email')
   })
 })

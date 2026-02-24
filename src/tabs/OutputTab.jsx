@@ -4,7 +4,7 @@ import { buildCalendarLinks } from '../lib/calendar.js'
 
 export default function OutputTab({ organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch }) {
   const [copied, setCopied] = useState(false)
-  const [interactiveCheckboxes, setInteractiveCheckboxes] = useState(false)
+  const [interactiveCheckboxes, setInteractiveCheckboxes] = useState(true)
 
   const html = generateHTML({ meetings, commentPeriods, officials, actions, organizations, whyItMatters, whosDeciding, whatToWatch, interactiveCheckboxes })
 
@@ -176,10 +176,13 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
               {organizations.length > 0 && (
                 <div className="mb-4">
                   <h4 className="font-heading font-semibold text-sm text-pd-text mb-2">Organizations to Follow</h4>
-                  <ul className="list-disc list-inside space-y-1">
+                  <ul className={`${interactiveCheckboxes ? 'list-none' : 'list-disc list-inside'} space-y-1`}>
                     {organizations.map((org, i) => (
                       <li key={i} className="text-sm">
-                        <a href={org.url} className="text-pd-blue hover:underline">{org.name}</a>
+                        <label className={`${interactiveCheckboxes ? 'flex items-start gap-1.5 cursor-pointer' : ''}`}>
+                          {interactiveCheckboxes && <input type="checkbox" className="mt-1 cursor-pointer" />}
+                          <a href={org.url} className="text-pd-blue hover:underline">{org.name}</a>
+                        </label>
                       </li>
                     ))}
                   </ul>
@@ -194,14 +197,9 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
                 </div>
               )}
 
-              <p className="text-sm text-pd-text italic mt-4">
-                If you take civic action please let us know — email us at{' '}
-                <a href="mailto:connect@planetdetroit.org" className="text-pd-blue">connect@planetdetroit.org</a>.
-              </p>
-
               {/* Reader response form preview */}
-              <div className="mt-3 p-3 bg-[#e8f0fe] rounded-md">
-                <p className="text-xs font-semibold text-pd-text mb-2">Tell us what action you took</p>
+              <div className="mt-4 p-3 bg-[#e8f0fe] rounded-md">
+                <p className="text-xs font-semibold text-pd-text mb-2">Did you take action? Let us know.</p>
                 <textarea
                   disabled
                   placeholder="I attended a meeting, contacted my rep, submitted a comment..."

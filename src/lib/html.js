@@ -41,7 +41,7 @@ export function trackLink(url, contentLabel) {
 
 // Generate the civic action box HTML from the provided data
 // When interactiveCheckboxes is true, adds checkboxes + inline JS for GA4 tracking and email capture
-export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], whyItMatters = '', whosDeciding = '', whatToWatch = '', interactiveCheckboxes = false } = {}) {
+export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], whyItMatters = '', whosDeciding = '', whatToWatch = '', interactiveCheckboxes = true } = {}) {
   let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
   <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Civic Action Toolbox</h3>\n`
 
@@ -158,7 +158,9 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Organizations to Follow</h4>
     <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
     organizations.forEach(org => {
-      html += `      <li style="margin-bottom: 4px;"><a href="${esc(trackLink(org.url || '#', `org_${org.name}`))}" style="color: #2f80c3; text-decoration: none;">${esc(org.name)}</a></li>\n`
+      const checkbox = interactiveCheckboxes ? `<label style="display: flex; align-items: flex-start; gap: 6px; cursor: pointer;"><input type="checkbox" class="civic-checkbox" data-action="explore_organization" data-label="${esc(org.name)}" style="margin-top: 3px; cursor: pointer;"> <span>` : ''
+      const checkboxEnd = interactiveCheckboxes ? `</span></label>` : ''
+      html += `      <li style="margin-bottom: 4px; ${interactiveCheckboxes ? 'list-style: none;' : ''}">${checkbox}<a href="${esc(trackLink(org.url || '#', `org_${org.name}`))}" style="color: #2f80c3; text-decoration: none;">${esc(org.name)}</a>${checkboxEnd}</li>\n`
     })
     html += `    </ul>
   </div>\n`
@@ -172,23 +174,8 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   </div>\n`
   }
 
-  // Interactive email capture form (hidden until first checkbox is checked)
-  if (interactiveCheckboxes) {
-    html += `  <div id="civic-email-section" style="display: none; margin: 16px 0 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">
-    <p style="font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Thanks for taking action! Want to stay informed?</p>
-    <form id="civic-email-form" style="display: flex; gap: 8px;">
-      <input type="email" id="civic-email-input" placeholder="Your email" required style="flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
-      <button type="submit" style="padding: 6px 14px; background: #2f80c3; color: white; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 600;">Submit</button>
-    </form>
-    <p id="civic-email-thanks" style="display: none; font-size: 13px; color: #2f80c3; margin: 8px 0 0 0; font-weight: 600;">Thank you! Your civic actions have been recorded.</p>
-  </div>\n`
-  }
-
-  html += `  <p style="font-size: 13px; color: #333; margin: 16px 0 12px 0; font-style: italic;">
-    If you take civic action please let us know — email us at <a href="mailto:connect@planetdetroit.org" style="color: #2f80c3;">connect@planetdetroit.org</a>.
-  </p>
-  <div id="civic-response-form" style="margin: 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">
-    <p style="font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Tell us what action you took</p>
+  html += `  <div id="civic-response-form" style="margin: 16px 0 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">
+    <p style="font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Did you take action? Let us know.</p>
     <form id="civic-response-submit">
       <textarea id="civic-response-message" placeholder="I attended a meeting, contacted my rep, submitted a comment..." required style="width: 100%; box-sizing: border-box; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 50px; margin-bottom: 6px;"></textarea>
       <div style="display: flex; gap: 8px;">
@@ -203,16 +190,13 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   </p>
 </div>`
 
-  // Inline script for checkbox interaction (GA4 events, old email capture)
+  // Inline script for checkbox interaction (GA4 event tracking)
   if (interactiveCheckboxes) {
     html += `\n<script>
 (function() {
   var box = document.querySelector('.civic-action-box');
   if (!box) return;
   var checks = box.querySelectorAll('.civic-checkbox');
-  var emailSection = document.getElementById('civic-email-section');
-  var emailForm = document.getElementById('civic-email-form');
-  var emailThanks = document.getElementById('civic-email-thanks');
 
   checks.forEach(function(cb) {
     cb.addEventListener('change', function() {
@@ -225,8 +209,6 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
           article_url: window.location.href
         });
       }
-      var anyChecked = box.querySelector('.civic-checkbox:checked');
-      if (anyChecked && emailSection) emailSection.style.display = 'block';
     });
   });
 })();
