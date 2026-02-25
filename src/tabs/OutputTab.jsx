@@ -1,17 +1,25 @@
 import { useState } from 'react'
-import { generateHTML } from '../lib/html.js'
+import { generateHTML, generateScript } from '../lib/html.js'
 import { buildCalendarLinks } from '../lib/calendar.js'
 
 export default function OutputTab({ organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch }) {
   const [copied, setCopied] = useState(false)
+  const [copiedScript, setCopiedScript] = useState(false)
   const [interactiveCheckboxes, setInteractiveCheckboxes] = useState(true)
 
   const html = generateHTML({ meetings, commentPeriods, officials, actions, organizations, whyItMatters, whosDeciding, whatToWatch, interactiveCheckboxes })
+  const script = generateScript({ interactiveCheckboxes })
 
   const handleCopy = () => {
     navigator.clipboard.writeText(html)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleCopyScript = () => {
+    navigator.clipboard.writeText(`<script>\n${script}\n</script>`)
+    setCopiedScript(true)
+    setTimeout(() => setCopiedScript(false), 2000)
   }
 
   const isEmpty = organizations.length === 0 && meetings.length === 0 && commentPeriods.length === 0 && officials.length === 0 && actions.length === 0 && !whyItMatters?.trim() && !whosDeciding?.trim() && !whatToWatch?.trim()
@@ -251,6 +259,29 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
         <p className="mt-4 text-xs text-pd-text-light">
           Paste this HTML into your WordPress post using the "Custom HTML" block.
         </p>
+      </div>
+
+      {/* JavaScript — add once to WordPress */}
+      <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-heading font-bold text-lg text-pd-text">JavaScript (add once to WordPress)</h2>
+          <button
+            onClick={handleCopyScript}
+            disabled={isEmpty}
+            className="px-4 py-2 bg-pd-orange text-white font-semibold rounded hover:bg-orange-600 transition-colors disabled:opacity-50"
+          >
+            {copiedScript ? '✓ Copied!' : 'Copy Script'}
+          </button>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800">
+          <strong>One-time setup:</strong> WordPress strips {'<script>'} tags from posts, so this JavaScript must be added separately.
+          Use a code snippets plugin (like <strong>WPCode</strong>) or paste into your theme's footer. You only need to do this once — it works on all posts with a civic action box.
+        </div>
+
+        <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto max-h-64">
+          {isEmpty ? '<!-- Add items in Builder tab -->' : `<script>\n${script}\n</script>`}
+        </pre>
       </div>
     </div>
   )

@@ -39,8 +39,72 @@ export function trackLink(url, contentLabel) {
   return `${safe}${sep}utm_source=planet_detroit&utm_medium=civic_action_box&utm_campaign=civic_action&utm_content=${utmSlug(contentLabel)}`
 }
 
+// Generate the JavaScript needed for civic action box interactivity.
+// This script should be added to WordPress ONCE (via theme or code snippets plugin),
+// NOT pasted into individual posts — WordPress strips <script> tags from post content.
+export function generateScript({ interactiveCheckboxes = true } = {}) {
+  let script = ''
+
+  // GA4 checkbox tracking (only when interactive checkboxes are enabled)
+  if (interactiveCheckboxes) {
+    script += `(function() {
+  var box = document.querySelector('.civic-action-box');
+  if (!box) return;
+  var checks = box.querySelectorAll('.civic-checkbox');
+
+  checks.forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var action = cb.getAttribute('data-action');
+      var label = cb.getAttribute('data-label');
+      if (typeof gtag !== 'undefined') {
+        gtag('event', cb.checked ? 'civic_action_taken' : 'civic_action_untaken', {
+          action_label: action,
+          action_detail: label,
+          article_url: window.location.href
+        });
+      }
+    });
+  });
+})();\n\n`
+  }
+
+  // Reader response form submission
+  script += `(function() {
+  var form = document.getElementById('civic-response-submit');
+  var thanks = document.getElementById('civic-response-thanks');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var msg = document.getElementById('civic-response-message').value.trim();
+    var email = document.getElementById('civic-response-email').value.trim();
+    if (!msg) return;
+    var payload = {
+      message: msg,
+      article_url: window.location.href,
+      article_title: document.title
+    };
+    if (email) payload.email = email;
+    fetch('https://ask-planet-detroit-production.up.railway.app/api/civic-responses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function() {
+      form.style.display = 'none';
+      if (thanks) thanks.style.display = 'block';
+    }).catch(function() {
+      form.style.display = 'none';
+      if (thanks) thanks.style.display = 'block';
+    });
+  });
+})();`
+
+  return script
+}
+
 // Generate the civic action box HTML from the provided data
-// When interactiveCheckboxes is true, adds checkboxes + inline JS for GA4 tracking and email capture
+// When interactiveCheckboxes is true, adds checkboxes for readers to mark actions taken
+// NOTE: JavaScript is generated separately via generateScript() — do NOT paste <script> into WordPress posts
 export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], whyItMatters = '', whosDeciding = '', whatToWatch = '', interactiveCheckboxes = true } = {}) {
   let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
   <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Civic Action Toolbox</h3>\n`
@@ -189,64 +253,6 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     Civic resources compiled by <a href="https://planetdetroit.org" style="color: #2f80c3;">Planet Detroit</a>
   </p>
 </div>`
-
-  // Inline script for checkbox interaction (GA4 event tracking)
-  if (interactiveCheckboxes) {
-    html += `\n<script>
-(function() {
-  var box = document.querySelector('.civic-action-box');
-  if (!box) return;
-  var checks = box.querySelectorAll('.civic-checkbox');
-
-  checks.forEach(function(cb) {
-    cb.addEventListener('change', function() {
-      var action = cb.getAttribute('data-action');
-      var label = cb.getAttribute('data-label');
-      if (typeof gtag !== 'undefined') {
-        gtag('event', cb.checked ? 'civic_action_taken' : 'civic_action_untaken', {
-          action_label: action,
-          action_detail: label,
-          article_url: window.location.href
-        });
-      }
-    });
-  });
-})();
-</script>`
-  }
-
-  // Inline script for reader response form submission
-  html += `\n<script>
-(function() {
-  var form = document.getElementById('civic-response-submit');
-  var thanks = document.getElementById('civic-response-thanks');
-  if (!form) return;
-
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    var msg = document.getElementById('civic-response-message').value.trim();
-    var email = document.getElementById('civic-response-email').value.trim();
-    if (!msg) return;
-    var payload = {
-      message: msg,
-      article_url: window.location.href,
-      article_title: document.title
-    };
-    if (email) payload.email = email;
-    fetch('https://ask-planet-detroit-production.up.railway.app/api/civic-responses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).then(function() {
-      form.style.display = 'none';
-      if (thanks) thanks.style.display = 'block';
-    }).catch(function() {
-      form.style.display = 'none';
-      if (thanks) thanks.style.display = 'block';
-    });
-  });
-})();
-</script>`
 
   return html
 }

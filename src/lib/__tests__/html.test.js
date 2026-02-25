@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { esc, safeUrl, utmSlug, trackLink, generateHTML } from '../html.js'
+import { esc, safeUrl, utmSlug, trackLink, generateHTML, generateScript } from '../html.js'
 
 describe('esc', () => {
   // Should escape all HTML-special characters to prevent XSS
@@ -352,14 +352,6 @@ describe('generateHTML — reader response form', () => {
     expect(orgPos).toBeLessThan(formPos)
   })
 
-  // Response form should post to the civic-responses API
-  it('posts to civic-responses API endpoint', () => {
-    const html = generateHTML({
-      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
-    })
-    expect(html).toContain('/api/civic-responses')
-  })
-
   // Response form shows thank-you after submission
   it('includes a thank-you confirmation element', () => {
     const html = generateHTML({
@@ -382,14 +374,12 @@ describe('generateHTML with interactiveCheckboxes', () => {
     const html = generateHTML(sampleData)
     expect(html).toContain('civic-checkbox')
     expect(html).toContain('type="checkbox"')
-    expect(html).toContain('civic_action_taken')
   })
 
   // Explicit false = no checkboxes
   it('has no checkboxes when interactiveCheckboxes is false', () => {
     const html = generateHTML({ ...sampleData, interactiveCheckboxes: false })
     expect(html).not.toContain('civic-checkbox')
-    expect(html).not.toContain('civic_action_taken')
   })
 
   // Checkboxes present when flag is true
@@ -420,27 +410,18 @@ describe('generateHTML with interactiveCheckboxes', () => {
     expect(html).toContain('data-action="submit_comment"')
   })
 
-  // Inline script contains gtag event calls
-  it('includes GA4 event tracking in inline script', () => {
+  // HTML should NOT contain inline scripts (WordPress strips them)
+  it('does not include inline scripts in HTML output', () => {
     const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
-    expect(html).toContain("<script>")
-    expect(html).toContain("gtag('event'")
-    expect(html).toContain('civic_action_taken')
-    expect(html).toContain('civic_action_untaken')
+    expect(html).not.toContain('<script>')
+    expect(html).not.toContain('</script>')
   })
 
-  // Response form submits to backend
-  it('submits to civic-responses API endpoint', () => {
-    const html = generateHTML({ ...sampleData, interactiveCheckboxes: true })
-    expect(html).toContain('/api/civic-responses')
-  })
-
-  // Checkbox GA4 script excluded when flag is false (response form script is always present)
-  it('excludes checkbox tracking script when interactiveCheckboxes is false', () => {
+  // Checkbox GA4 script excluded when flag is false
+  it('excludes checkbox tracking from HTML when interactiveCheckboxes is false', () => {
     const html = generateHTML({ ...sampleData, interactiveCheckboxes: false })
-    expect(html).not.toContain('civic_action_taken')
     expect(html).not.toContain('civic-checkbox')
-    // Response form script should still be present
+    // Response form HTML elements should still be present
     expect(html).toContain('civic-response-submit')
   })
 
@@ -494,5 +475,39 @@ describe('generateHTML — consolidated reader form', () => {
     expect(html).toContain('civic-response-form')
     expect(html).toContain('civic-response-message')
     expect(html).toContain('civic-response-email')
+  })
+})
+
+// =========================================================================
+// generateScript — JavaScript generated separately from HTML
+// =========================================================================
+
+describe('generateScript', () => {
+  // Script should include GA4 tracking when interactiveCheckboxes is true
+  it('includes GA4 event tracking when interactiveCheckboxes is true', () => {
+    const script = generateScript({ interactiveCheckboxes: true })
+    expect(script).toContain("gtag('event'")
+    expect(script).toContain('civic_action_taken')
+    expect(script).toContain('civic_action_untaken')
+  })
+
+  // Script should NOT include GA4 tracking when interactiveCheckboxes is false
+  it('excludes GA4 tracking when interactiveCheckboxes is false', () => {
+    const script = generateScript({ interactiveCheckboxes: false })
+    expect(script).not.toContain('civic_action_taken')
+    expect(script).not.toContain('gtag')
+  })
+
+  // Script should always include response form submission handler
+  it('always includes response form submission', () => {
+    const script = generateScript({ interactiveCheckboxes: false })
+    expect(script).toContain('civic-response-submit')
+    expect(script).toContain('/api/civic-responses')
+  })
+
+  // Script should post to the correct API endpoint
+  it('posts to civic-responses API endpoint', () => {
+    const script = generateScript()
+    expect(script).toContain('ask-planet-detroit-production.up.railway.app/api/civic-responses')
   })
 })
