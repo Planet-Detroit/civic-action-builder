@@ -1,7 +1,7 @@
 # Working State - Civic Action Builder
 
-**Last Updated:** February 19, 2026
-**Last Verified Working:** February 19, 2026 (all tests pass, build succeeds)
+**Last Updated:** February 24, 2026
+**Last Verified Working:** February 24, 2026 (all tests pass, build succeeds)
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### Civic Action Builder Frontend
 - **URL:** https://civic-action-builder.vercel.app/
-- **Git Commit:** `d5d74c8` (Feb 19 — "Update docs with new file structure and checkbox feature")
+- **Git Commit:** `c07c484` (Feb 24 — "Fix: separate JavaScript from HTML to prevent WordPress script stripping")
 - **Features:**
   - Three-tab workflow (Input → Builder → Output)
   - Article URL input — fetches from WordPress API
@@ -17,16 +17,18 @@
   - AI analysis via backend API (detected issues, meetings, orgs, officials, actions)
   - Organization, meeting, comment period, and official search/filter/add
   - Editable civic actions with manual entry
-  - Freeform notes (appear at top of output)
+  - Context sections: Why it matters, Who's deciding, What to watch
+  - "Did you take action?" reader response form (consolidated from two forms)
   - HTML preview and copy-to-clipboard
+  - Separate JavaScript output section (for WPCode — not pasted into posts)
   - localStorage auto-save with 7-day expiry
   - "New Article" button clears all state
-  - **NEW:** Interactive checkboxes toggle (GA4 tracking + email capture)
-  - **NEW:** Modular codebase (11 files, 57 automated tests)
+  - Interactive checkboxes toggle (GA4 tracking)
+  - Modular codebase (11 files, 82 automated tests)
 
 ### Backend API
 - **URL:** https://ask-planet-detroit-production.up.railway.app/
-- **Git Commit:** `602af62` (Feb 19 — "Add POST /api/civic-responses endpoint")
+- **Git Commit:** `f5c151f` (Feb 24 — "Fix civic_responses migration to match API endpoint schema")
 - **Endpoints:**
   - `/api/search` — RAG search with Claude answer synthesis
   - `/api/organizations` — List/search organizations (605 orgs)
@@ -34,7 +36,7 @@
   - `/api/comment-periods` — List open comment periods
   - `/api/officials` — List elected officials
   - `/api/analyze-article` — Analyze article for civic actions
-  - **NEW:** `/api/civic-responses` — Record reader civic action engagement
+  - `/api/civic-responses` — Record reader responses (message + optional email)
   - Meeting scrapers (MPSC, GLWA, Detroit, EGLE) via GitHub Actions
 
 ### Data in Supabase
@@ -42,19 +44,17 @@
 - 605 organizations (517 geocoded)
 - Meetings database (daily scrapers)
 - Comment periods (EGLE scraper)
-- **NEW:** `civic_responses` table (requires running migration)
+- `civic_responses` table (schema: message, email, article_url, article_title, user_agent)
 
 ### Test Coverage
-- **Frontend:** 57 tests (API slug extraction, calendar links, HTML generation/XSS/UTM/checkboxes, localStorage)
-- **Backend:** 48 tests (endpoints, validation, CORS, auth, civic responses)
+- **Frontend:** 82 tests (API slug extraction, calendar links, HTML generation/XSS/UTM/checkboxes/script separation, localStorage)
+- **Backend:** 86 tests (endpoints, validation, CORS, auth, civic responses)
 
 ---
 
 ## Known Issues
 
-- The `civic_responses` Supabase table must be created manually — run `api/migrations/civic_responses.sql` in Supabase SQL editor before the checkbox feature will work
-- Backend needs redeploy on Railway to pick up the new `/api/civic-responses` endpoint
-- Frontend needs push to trigger Vercel redeploy
+- None currently blocking
 
 ---
 
@@ -82,12 +82,12 @@
 
 ### Frontend (civic-action-builder)
 ```
-d5d74c8 - Feb 19, 2026 - "Update docs with new file structure and checkbox feature"
+c07c484 - Feb 24, 2026 - "Fix: separate JavaScript from HTML to prevent WordPress script stripping"
 ```
 
 ### Backend (ask-planet-detroit)
 ```
-602af62 - Feb 19, 2026 - "Add POST /api/civic-responses endpoint for reader engagement tracking"
+f5c151f - Feb 24, 2026 - "Fix civic_responses migration to match API endpoint schema"
 ```
 
 ---
@@ -105,27 +105,33 @@ d5d74c8 - Feb 19, 2026 - "Update docs with new file structure and checkbox featu
 
 ---
 
-## Deployment Checklist (for this release)
+## Deployment Checklist
 
-1. [ ] Run `api/migrations/civic_responses.sql` in Supabase SQL editor
-2. [ ] Push `ask-planet-detroit` to trigger Railway redeploy
-3. [ ] Push `civic-action-builder` to trigger Vercel redeploy
-4. [ ] Verify login works at https://civic-action-builder.vercel.app/
-5. [ ] Verify article analysis works
-6. [ ] Verify checkbox toggle generates checkboxes in HTML output
-7. [ ] Test checkbox HTML in a WordPress Custom HTML block
+### Initial WordPress Setup (one-time)
+1. [x] Run `api/migrations/civic_responses.sql` in Supabase SQL editor
+2. [x] Fix Supabase schema: `ALTER TABLE civic_responses ADD COLUMN message text; ALTER TABLE civic_responses ALTER COLUMN email DROP NOT NULL; ALTER TABLE civic_responses DROP COLUMN IF EXISTS actions_taken;`
+3. [x] Install Civic Action Block plugin on WordPress
+4. [ ] Install WPCode plugin on WordPress and add the civic action box JavaScript snippet (see MAINTENANCE.md)
+
+### Per-release
+1. [ ] Push `ask-planet-detroit` to trigger Railway redeploy
+2. [ ] Push `civic-action-builder` to trigger Vercel redeploy
+3. [ ] Verify login works at https://civic-action-builder.vercel.app/
+4. [ ] Verify article analysis works
+5. [ ] Verify Output tab shows HTML (Copy HTML button) and JavaScript section separately
+6. [ ] Test civic action box end-to-end in WordPress (paste HTML into block, verify no raw JS text shows)
+
+### Deploying to a new WordPress site
+1. [ ] Build and install Civic Action Block plugin (`npm run plugin-zip` in civic-action-block/)
+2. [ ] Install WPCode and add the JavaScript snippet
+3. [ ] Test: insert a Civic Action Block, paste HTML, verify display and interactivity
 
 ---
 
 ## Next Steps / TODO
 
-### High Priority
-- [ ] Deploy this release (run migration, push both repos)
-- [ ] Test interactive checkboxes end-to-end in WordPress
-
 ### Medium Priority
 - [ ] Add more meeting scrapers
-- [ ] WordPress plugin integration for civic action boxes
 - [ ] Engagement dashboard for civic response data
 
 ### Low Priority / Future
