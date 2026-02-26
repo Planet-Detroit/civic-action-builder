@@ -302,6 +302,31 @@ describe('generateHTML — new context sections', () => {
     expect(html).toContain('Line one')
     expect(html).toContain('Line two')
   })
+
+  // Rich text (bold, italic, links) should be preserved in context fields
+  it('preserves bold and italic in whyItMatters', () => {
+    const html = generateHTML({ whyItMatters: '<strong>Important</strong> fact about <em>water quality</em>' })
+    expect(html).toContain('<strong>Important</strong>')
+    expect(html).toContain('<em>water quality</em>')
+  })
+
+  it('preserves links in whosDeciding', () => {
+    const html = generateHTML({ whosDeciding: 'The <a href="https://egle.gov">EGLE board</a> decides.' })
+    expect(html).toContain('<a href="https://egle.gov"')
+    expect(html).toContain('EGLE board</a>')
+  })
+
+  // Dangerous HTML should still be stripped from rich text context fields
+  it('strips scripts from rich text context fields', () => {
+    const html = generateHTML({ whyItMatters: 'Text <script>alert("xss")</script> more text' })
+    expect(html).not.toContain('<script>')
+  })
+
+  it('strips event handlers from rich text context fields', () => {
+    const html = generateHTML({ whyItMatters: '<strong onmouseover="alert(1)">bold</strong>' })
+    expect(html).not.toContain('onmouseover')
+    expect(html).toContain('<strong>bold</strong>')
+  })
 })
 
 // =========================================================================

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ISSUE_TO_AGENCY } from '../lib/constants.js'
+import RichTextEditor from '../RichTextEditor.jsx'
 
 export default function BuilderTab({
   organizations, setOrganizations,
@@ -190,26 +191,22 @@ export default function BuilderTab({
       {/* Why it matters — AI-prepopulated, editable */}
       <div className="bg-white rounded-lg shadow-md p-5">
         <h2 className="font-heading font-bold text-base text-pd-text mb-2">💡 Why It Matters</h2>
-        <p className="text-xs text-pd-text-light mb-2">1-2 paragraphs explaining why this story matters to Metro Detroit residents. Pre-filled by AI — review and edit.</p>
-        <textarea
+        <p className="text-xs text-pd-text-light mb-2">One sentence on why this story matters to Metro Detroit residents. Pre-filled by AI — review and edit.</p>
+        <RichTextEditor
           value={whyItMatters}
-          onChange={(e) => setWhyItMatters(e.target.value)}
-          placeholder="Why does this story matter to readers? Focus on direct impacts to health, wallets, or community..."
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          onChange={setWhyItMatters}
+          placeholder="One sentence: Why does this story matter to readers?"
         />
       </div>
 
       {/* Who's making public decisions — AI-prepopulated, editable */}
       <div className="bg-white rounded-lg shadow-md p-5">
         <h2 className="font-heading font-bold text-base text-pd-text mb-2">🏛️ Who's Making Public Decisions</h2>
-        <p className="text-xs text-pd-text-light mb-2">1-2 paragraphs identifying decision-makers: agencies, boards, commissions, or officials. Pre-filled by AI — review and edit.</p>
-        <textarea
+        <p className="text-xs text-pd-text-light mb-2">One sentence identifying the key decision-makers. Pre-filled by AI — review and edit.</p>
+        <RichTextEditor
           value={whosDeciding}
-          onChange={(e) => setWhosDeciding(e.target.value)}
-          placeholder="Which agencies, boards, or officials are making the key decisions? Include upcoming decision points..."
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          onChange={setWhosDeciding}
+          placeholder="One sentence: Which agency, board, or official is making the key decision?"
         />
       </div>
 
@@ -787,13 +784,11 @@ export default function BuilderTab({
         {/* What to watch for next — AI-prepopulated, editable */}
         <div className="bg-white rounded-lg shadow-md p-5">
           <h2 className="font-heading font-bold text-base text-pd-text mb-2">👀 What to Watch for Next</h2>
-          <p className="text-xs text-pd-text-light mb-2">1-2 sentences about upcoming votes, rulings, or deadlines. Pre-filled by AI — review and edit.</p>
-          <textarea
+          <p className="text-xs text-pd-text-light mb-2">One sentence about the most important upcoming vote, ruling, or deadline. Pre-filled by AI — review and edit.</p>
+          <RichTextEditor
             value={whatToWatch}
-            onChange={(e) => setWhatToWatch(e.target.value)}
-            placeholder="What should readers watch for next? Upcoming votes, rulings, deadlines..."
-            rows={2}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+            onChange={setWhatToWatch}
+            placeholder="One sentence: What should readers watch for next?"
           />
         </div>
       </div>

@@ -11,3 +11,25 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Asap', sans-serif;
 }
+
+/* TipTap rich text editor styles */
+.tiptap {
+  outline: none;
+}
+
+.tiptap p {
+  margin: 0;
+}
+
+.tiptap a {
+  color: #2f80c3;
+  text-decoration: underline;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}

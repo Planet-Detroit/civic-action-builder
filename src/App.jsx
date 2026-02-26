@@ -146,9 +146,23 @@ function AuthenticatedApp({ onSignOut }) {
       setOfficials(normalized.slice(0, 3))
     }
 
-    if (result.civic_actions) {
-      setActions(result.civic_actions.slice(0, 4))
-    }
+    // Combine AI-suggested actions with evergreen defaults
+    const defaultActions = [
+      {
+        title: 'Write a letter to the editor or op-ed',
+        description: 'Share your perspective with a broader audience by submitting a letter to the editor or opinion piece to your local paper.',
+        url: '',
+        action_type: 'write_oped',
+      },
+      {
+        title: 'Register to vote',
+        description: 'Make sure you\'re registered and ready to vote on the issues and candidates that affect your community.',
+        url: 'https://mvic.sos.state.mi.us/RegisterVoter',
+        action_type: 'register_vote',
+      },
+    ]
+    const aiActions = result.civic_actions ? result.civic_actions.slice(0, 4) : []
+    setActions([...aiActions, ...defaultActions])
 
     // Pre-populate the new context sections from AI analysis
     if (result.why_it_matters) setWhyItMatters(result.why_it_matters)

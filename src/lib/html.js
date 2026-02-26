@@ -121,6 +121,24 @@ ${innerScript}
   return script
 }
 
+// Sanitize rich text context fields: allow basic formatting (bold, italic, links, line breaks)
+// but strip scripts, event handlers, and other dangerous HTML
+const CONTEXT_ALLOWED_TAGS = ['strong', 'em', 'b', 'i', 'a', 'br', 'p']
+const CONTEXT_ALLOWED_ATTR = ['href', 'target', 'rel']
+
+function sanitizeContext(html) {
+  if (!html) return ''
+  // If the content looks like plain text (no HTML tags), escape and add line breaks
+  if (!/<[a-z][\s\S]*>/i.test(html)) {
+    return esc(html).replace(/\n/g, '<br>')
+  }
+  // Rich text: sanitize allowing only safe formatting tags
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: CONTEXT_ALLOWED_TAGS,
+    ALLOWED_ATTR: CONTEXT_ALLOWED_ATTR,
+  })
+}
+
 // Generate the civic action box HTML from the provided data
 // When interactiveCheckboxes is true, adds checkboxes for readers to mark actions taken
 // NOTE: JavaScript is generated separately via generateScript() — do NOT paste <script> into WordPress posts
@@ -133,7 +151,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Why it matters</h4>
     <div style="font-size: 14px; color: #333; line-height: 1.5;">
-      ${DOMPurify.sanitize(esc(whyItMatters).replace(/\n/g, '<br>'), { ALLOWED_TAGS: ['br'] })}
+      ${sanitizeContext(whyItMatters)}
     </div>
   </div>\n`
   }
@@ -143,7 +161,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">${esc("Who's making public decisions")}</h4>
     <div style="font-size: 14px; color: #333; line-height: 1.5;">
-      ${DOMPurify.sanitize(esc(whosDeciding).replace(/\n/g, '<br>'), { ALLOWED_TAGS: ['br'] })}
+      ${sanitizeContext(whosDeciding)}
     </div>
   </div>\n`
   }
@@ -259,7 +277,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   if (whatToWatch?.trim()) {
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">What to watch for next</h4>
-    <p style="font-size: 14px; color: #333; line-height: 1.5;">${esc(whatToWatch)}</p>
+    <div style="font-size: 14px; color: #333; line-height: 1.5;">${sanitizeContext(whatToWatch)}</div>
   </div>\n`
   }
 
