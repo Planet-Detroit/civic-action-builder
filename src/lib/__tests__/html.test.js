@@ -445,6 +445,29 @@ describe('generateHTML with interactiveCheckboxes', () => {
     expect(html).not.toContain('data-action="explore_organization"')
     expect(html).not.toContain('civic-checkbox')
   })
+
+  // When checkboxes are ON, <ul> should have list-style: none and no left padding
+  // so there's no double marker (bullet + checkbox)
+  it('removes bullet markers from <ul> when checkboxes are on', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test Meeting', start_datetime: '2025-03-15T10:00:00', agency: 'EGLE' }],
+      interactiveCheckboxes: true,
+    })
+    // The <ul> should suppress bullet markers
+    expect(html).toMatch(/<ul[^>]*list-style:\s*none/)
+    // The <ul> should have no left padding (checkbox replaces bullet indent)
+    expect(html).toMatch(/<ul[^>]*padding-left:\s*0/)
+  })
+
+  // When checkboxes are OFF, <ul> should keep default bullet styling
+  it('keeps bullet markers on <ul> when checkboxes are off', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test Meeting', start_datetime: '2025-03-15T10:00:00', agency: 'EGLE' }],
+      interactiveCheckboxes: false,
+    })
+    // The <ul> should have padding for bullets
+    expect(html).toMatch(/<ul[^>]*padding-left:\s*20px/)
+  })
 })
 
 describe('generateHTML — consolidated reader form', () => {

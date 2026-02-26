@@ -148,10 +148,16 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   </div>\n`
   }
 
+  // When checkboxes are on, suppress bullet markers and remove left padding
+  // so there's no "double marker" (bullet + checkbox)
+  const ulStyle = interactiveCheckboxes
+    ? 'margin: 0; padding-left: 0; list-style: none; font-size: 14px;'
+    : 'margin: 0; padding-left: 20px; font-size: 14px;'
+
   if (meetings.length > 0) {
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Upcoming Meetings</h4>
-    <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
+    <ul style="${ulStyle}">\n`
     meetings.forEach(meeting => {
       const date = new Date(meeting.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
       const agency = meeting.agency ? ` (${meeting.agency})` : ''
@@ -171,7 +177,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   if (commentPeriods.length > 0) {
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Open Comment Periods</h4>
-    <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
+    <ul style="${ulStyle}">\n`
     commentPeriods.forEach(period => {
       const deadline = period.end_date ? new Date(period.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
       const agency = period.agency ? ` (${period.agency})` : ''
@@ -200,7 +206,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   if (officials.length > 0) {
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Contact Your Representatives</h4>
-    <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
+    <ul style="${ulStyle}">\n`
     officials.forEach(official => {
       const contactParts = []
       if (official.email) contactParts.push(`<a href="${safeUrl(`mailto:${official.email}`)}" style="color: #2f80c3; font-size: 12px;">${esc(official.email)}</a>`)
@@ -216,7 +222,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   if (actions.length > 0) {
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Civic Actions: What You Can Do</h4>
-    <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
+    <ul style="${ulStyle}">\n`
     actions.forEach(action => {
       const actionSlug = utmSlug(action.title)
       const checkbox = interactiveCheckboxes ? `<label style="display: flex; align-items: flex-start; gap: 6px; cursor: pointer;"><input type="checkbox" class="civic-checkbox" data-action="${esc(actionSlug)}" data-label="${esc(action.title)}" style="margin-top: 3px; cursor: pointer;"> <span>` : ''
@@ -239,7 +245,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   if (organizations.length > 0) {
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">Organizations to Follow</h4>
-    <ul style="margin: 0; padding-left: 20px; font-size: 14px;">\n`
+    <ul style="${ulStyle}">\n`
     organizations.forEach(org => {
       const checkbox = interactiveCheckboxes ? `<label style="display: flex; align-items: flex-start; gap: 6px; cursor: pointer;"><input type="checkbox" class="civic-checkbox" data-action="explore_organization" data-label="${esc(org.name)}" style="margin-top: 3px; cursor: pointer;"> <span>` : ''
       const checkboxEnd = interactiveCheckboxes ? `</span></label>` : ''
