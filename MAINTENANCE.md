@@ -1,6 +1,6 @@
 # Civic Action Builder — Maintenance Guide
 
-**Last Updated:** February 24, 2026
+**Last Updated:** February 25, 2026
 
 ---
 
@@ -126,6 +126,12 @@ WordPress strips `<script>` tags from post content, so this JavaScript is loaded
 4. Copy the script from the **"JavaScript (add once to WordPress)"** section of the builder's Output tab
 5. Under **Insertion**, set location to **Site Wide Footer**
 6. Toggle **Active** and click **Save Snippet**
+
+### Troubleshooting WPCode:
+- **Script must be Active** — toggle it on in the WPCode snippet editor
+- **Location must be "Site Wide Footer"** — if placed in the header, it may run before the DOM is ready (the script handles both cases, but footer is safer)
+- **Verify it's loading:** Open browser console and run: `document.querySelectorAll('script').forEach(function(s) { if (s.textContent.includes('civicActionInit')) console.log('FOUND'); }); console.log('done');`
+- **Watch for line breaks when pasting** — if long lines wrap during copy-paste, they can create syntax errors. The current script uses `document.createElement` to avoid this.
 
 ### What happens without it:
 - The civic action box still displays correctly (all HTML works)

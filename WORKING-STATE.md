@@ -1,7 +1,7 @@
 # Working State - Civic Action Builder
 
-**Last Updated:** February 24, 2026
-**Last Verified Working:** February 24, 2026 (all tests pass, build succeeds)
+**Last Updated:** February 25, 2026
+**Last Verified Working:** February 25, 2026 (all tests pass, build succeeds, form submission verified in production)
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### Civic Action Builder Frontend
 - **URL:** https://civic-action-builder.vercel.app/
-- **Git Commit:** `c07c484` (Feb 24 — "Fix: separate JavaScript from HTML to prevent WordPress script stripping")
+- **Git Commit:** Latest on main (Feb 25 — reader response form fix: DOMContentLoaded timing, wrapper innerHTML replacement)
 - **Features:**
   - Three-tab workflow (Input → Builder → Output)
   - Article URL input — fetches from WordPress API
@@ -28,7 +28,7 @@
 
 ### Backend API
 - **URL:** https://ask-planet-detroit-production.up.railway.app/
-- **Git Commit:** `f5c151f` (Feb 24 — "Fix civic_responses migration to match API endpoint schema")
+- **Git Commit:** `3f2153c` (Feb 25 — "Add weather bar reference file and update docs")
 - **Endpoints:**
   - `/api/search` — RAG search with Claude answer synthesis
   - `/api/organizations` — List/search organizations (605 orgs)
@@ -82,12 +82,12 @@
 
 ### Frontend (civic-action-builder)
 ```
-c07c484 - Feb 24, 2026 - "Fix: separate JavaScript from HTML to prevent WordPress script stripping"
+Latest on main - Feb 25, 2026 - Reader response form fix (DOMContentLoaded timing + wrapper replacement)
 ```
 
 ### Backend (ask-planet-detroit)
 ```
-f5c151f - Feb 24, 2026 - "Fix civic_responses migration to match API endpoint schema"
+3f2153c - Feb 25, 2026 - "Add weather bar reference file and update docs"
 ```
 
 ---
@@ -111,7 +111,7 @@ f5c151f - Feb 24, 2026 - "Fix civic_responses migration to match API endpoint sc
 1. [x] Run `api/migrations/civic_responses.sql` in Supabase SQL editor
 2. [x] Fix Supabase schema: `ALTER TABLE civic_responses ADD COLUMN message text; ALTER TABLE civic_responses ALTER COLUMN email DROP NOT NULL; ALTER TABLE civic_responses DROP COLUMN IF EXISTS actions_taken;`
 3. [x] Install Civic Action Block plugin on WordPress
-4. [ ] Install WPCode plugin on WordPress and add the civic action box JavaScript snippet (see MAINTENANCE.md)
+4. [x] Install WPCode plugin on WordPress and add the civic action box JavaScript snippet (see MAINTENANCE.md)
 
 ### Per-release
 1. [ ] Push `ask-planet-detroit` to trigger Railway redeploy

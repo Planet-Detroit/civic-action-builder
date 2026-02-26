@@ -43,60 +43,79 @@ export function trackLink(url, contentLabel) {
 // This script should be added to WordPress ONCE (via theme or code snippets plugin),
 // NOT pasted into individual posts — WordPress strips <script> tags from post content.
 export function generateScript({ interactiveCheckboxes = true } = {}) {
-  let script = ''
+  let innerScript = ''
 
   // GA4 checkbox tracking (only when interactive checkboxes are enabled)
   if (interactiveCheckboxes) {
-    script += `(function() {
-  var box = document.querySelector('.civic-action-box');
-  if (!box) return;
-  var checks = box.querySelectorAll('.civic-checkbox');
-
-  checks.forEach(function(cb) {
-    cb.addEventListener('change', function() {
-      var action = cb.getAttribute('data-action');
-      var label = cb.getAttribute('data-label');
-      if (typeof gtag !== 'undefined') {
-        gtag('event', cb.checked ? 'civic_action_taken' : 'civic_action_untaken', {
-          action_label: action,
-          action_detail: label,
-          article_url: window.location.href
+    innerScript += `    var box = document.querySelector('.civic-action-box');
+    if (box) {
+      var checks = box.querySelectorAll('.civic-checkbox');
+      checks.forEach(function(cb) {
+        cb.addEventListener('change', function() {
+          var action = cb.getAttribute('data-action');
+          var label = cb.getAttribute('data-label');
+          if (typeof gtag !== 'undefined') {
+            gtag('event', cb.checked ? 'civic_action_taken' : 'civic_action_untaken', {
+              action_label: action,
+              action_detail: label,
+              article_url: window.location.href
+            });
+          }
         });
-      }
-    });
-  });
-})();\n\n`
+      });
+    }\n\n`
   }
 
-  // Reader response form submission
-  script += `(function() {
-  var form = document.getElementById('civic-response-submit');
-  var thanks = document.getElementById('civic-response-thanks');
-  if (!form) return;
+  // Reader response form submission — uses createElement to avoid long innerHTML
+  // strings that break when copy-pasted into WPCode
+  innerScript += `    var form = document.getElementById('civic-response-submit');
+    var wrapper = document.getElementById('civic-response-form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var msg = document.getElementById('civic-response-message').value.trim();
+        var email = document.getElementById('civic-response-email').value.trim();
+        if (!msg) return;
+        var payload = {
+          message: msg,
+          article_url: window.location.href,
+          article_title: document.title
+        };
+        if (email) payload.email = email;
+        function showThanks() {
+          if (wrapper) {
+            wrapper.innerHTML = '';
+            var p = document.createElement('p');
+            p.style.fontSize = '13px';
+            p.style.color = '#2f80c3';
+            p.style.margin = '0';
+            p.style.fontWeight = '600';
+            p.textContent = 'Thank you! Your response has been recorded.';
+            wrapper.appendChild(p);
+          }
+        }
+        fetch('https://ask-planet-detroit-production.up.railway.app/api/civic-responses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(showThanks).catch(showThanks);
+      });
+    }`
 
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    var msg = document.getElementById('civic-response-message').value.trim();
-    var email = document.getElementById('civic-response-email').value.trim();
-    if (!msg) return;
-    var payload = {
-      message: msg,
-      article_url: window.location.href,
-      article_title: document.title
-    };
-    if (email) payload.email = email;
-    fetch('https://ask-planet-detroit-production.up.railway.app/api/civic-responses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).then(function() {
-      form.style.display = 'none';
-      if (thanks) thanks.style.display = 'block';
-    }).catch(function() {
-      form.style.display = 'none';
-      if (thanks) thanks.style.display = 'block';
-    });
-  });
+  // Wrap in IIFE with readyState check so it works whether placed in header or footer.
+  // If DOM is still loading, wait for DOMContentLoaded; otherwise run immediately.
+  let script = `(function() {
+  var thanksMsg = 'Thank you! Your response has been recorded.';
+
+  function civicActionInit() {
+${innerScript}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', civicActionInit);
+  } else {
+    civicActionInit();
+  }
 })();`
 
   return script
