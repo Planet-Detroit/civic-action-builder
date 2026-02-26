@@ -1,54 +1,43 @@
 # Civic Action Builder — Next Steps
 
-**Created:** February 25, 2026
+**Updated:** February 26, 2026
 
 ---
 
-## 1. Civic Action Block Plugin Updates
+## Completed (Feb 26, 2026)
 
-### 1a. Rebuild and update the plugin on WordPress
-The `render.php` fix (allowing `id` on `<p>` tags) and auto-updater code have been pushed to GitHub but need to reach your WordPress site. Either:
-- Rebuild locally (`npm run build && npm run plugin-zip` in `civic-action-block/`) and upload the zip
-- Or create a new GitHub Release (v1.2.0) so the auto-updater delivers it
+### Checkbox formatting fix
+Fixed the "double marker" (bullet + checkbox) issue. When interactive checkboxes are enabled, `<ul>` elements now get `list-style: none; padding-left: 0` so only the checkbox shows — no bullet alongside it. Tests added.
 
-### 1b. Make the block retain HTML after Apply
-Currently, after pasting HTML and clicking Apply, the HTML disappears behind a preview-only view. The block should keep the HTML visible and editable so editors can modify it after pasting. This is a change to `src/edit.js` in `civic-action-block/`.
+### Block retains HTML after Apply
+After pasting HTML and clicking Apply, the block now shows both the live preview AND an editable "HTML Code" textarea below it. Editors can see and tweak the raw HTML without using "Replace Content". Changes save on blur. Tests added.
 
----
+### Block plugin rebuilt
+Plugin rebuilt with both fixes above (`npm run build && npm run plugin-zip`). The zip file is at `civic-action-block/civic-action-block.zip`, ready to upload to WordPress. This also includes the earlier `render.php` fix (allowing `id` on `<p>` tags).
 
-## 2. Fix Checkbox Formatting
+### Context fields constrained to one sentence
+AI prompt updated in `ask-planet-detroit/api/main.py` — "Why it matters", "Who's deciding", and "What to watch" now each return a single sentence. Builder UI hints and placeholders updated to match.
 
-Checkboxes are rendering alongside bullet points, creating a "checkbox + bullet" double marker. Need to pick one: either checkboxes (no bullet) or bullets (no checkbox).
+### Default civic actions added
+After AI analysis, two evergreen actions are automatically appended: "Write a letter to the editor or op-ed" and "Register to vote" (with Michigan voter registration link). Editors can remove them if not relevant.
 
-**How checkboxes work currently:**
-- When `interactiveCheckboxes` is toggled on in the builder, each action item gets an `<input type="checkbox">` wrapped in a `<label>`
-- Items are inside `<li>` elements with `list-style: none` set inline — but this may not be taking effect consistently
-- Checking/unchecking fires a GA4 event (`civic_action_taken` / `civic_action_untaken`) via the WPCode script
-- Tracking sends: action type (e.g. `attend_meeting`, `submit_comment`, `contact_official`), label, and article URL
+### "What to watch" text box enlarged
+Increased from 2 rows to 4 rows (now a WYSIWYG editor).
 
-**Fix needed:** Review the `generateHTML()` output in `src/lib/html.js` — ensure `list-style: none` is reliably applied when checkboxes are on, so there's no double marker. May also need to adjust padding/margin on the `<ul>` and `<li>` elements.
-
----
-
-## 3. Civic Action Builder Backend Improvements
-
-### 3a. Constrain "Why it matters" and "Who's making decisions" to one sentence
-These context sections should be brief — one sentence max. Update the AI prompt in the article analysis endpoint (`ask-planet-detroit/api/main.py`) to instruct Claude to keep these to a single sentence. Also update the builder UI to indicate the one-sentence expectation (placeholder text or character hint).
-
-### 3b. Add default civic actions: "Write an op-ed" and "Register to vote"
-These are evergreen actions that apply to most articles. Options:
-- Add them as default suggestions that always appear in the builder (editor can remove)
-- Or add quick-add buttons in the Builder tab
-
-### 3c. Make "What to watch for next" text box bigger
-The input field is currently small. Increase its height in the Builder tab UI.
-
-### 3d. Add WYSIWYG editing to all text fields in the builder
-Currently the context fields (Why it matters, Who's deciding, What to watch) are plain text inputs. Adding basic rich text editing (bold, italic, links) would let editors format these sections without writing HTML. This affects `BuilderTab.jsx`.
+### WYSIWYG editing for context fields
+Replaced plain textareas with TipTap rich text editors for "Why it matters", "Who's deciding", and "What to watch". Supports **bold**, *italic*, and links. HTML generation updated with `sanitizeContext()` that preserves safe formatting while stripping scripts and event handlers. Tests added.
 
 ---
 
-## 4. "Ask Planet Detroit" Reader Question Form (New Project)
+## Still To Do
+
+### 1. Upload plugin zip to WordPress
+The rebuilt `civic-action-block.zip` is ready at `civic-action-block/civic-action-block.zip`. Upload it via WordPress admin > Plugins > Add New > Upload Plugin. Alternatively, push to GitHub and create a v1.2.0 release so the auto-updater delivers it.
+
+### 2. Deploy ask-planet-detroit prompt change
+The one-sentence context constraint was committed to `ask-planet-detroit/api/main.py` but needs to be deployed to Railway for the change to take effect.
+
+### 3. "Ask Planet Detroit" Reader Question Form (New Project)
 
 A separate form where readers can submit questions directly to reporters. This is a bigger project — likely separate from the civic action box.
 
@@ -63,10 +52,17 @@ A separate form where readers can submit questions directly to reporters. This i
 
 ---
 
-## Priority Order
+## How Checkbox Tracking Works
 
-1. **Checkbox formatting fix** — quick fix, improves current live pages
-2. **Block retains HTML after Apply** — improves editor workflow
-3. **Rebuild + update plugin on WordPress** — delivers render.php fix + block improvements
-4. **Builder backend tweaks** (3a-3d) — medium effort, improves content quality
-5. **Ask Planet Detroit question form** — needs spec first, larger project
+For reference — the interactive checkbox system spans three pieces:
+
+1. **HTML (in each post)** — `generateHTML()` adds `<input type="checkbox" class="civic-checkbox" data-action="attend_meeting" data-label="Meeting Title">` to each list item. The `data-action` identifies the type (attend_meeting, submit_comment, contact_official, explore_organization). No JavaScript lives in the post HTML.
+
+2. **JavaScript (site-wide, via WPCode)** — `generateScript()` generates a script added once to the site footer. It listens for checkbox `change` events and fires GA4 events:
+   - Checked → `civic_action_taken`
+   - Unchecked → `civic_action_untaken`
+   - Payload: `action_label`, `action_detail`, `article_url`
+
+3. **GA4 (Google Analytics)** — Events appear under Events > `civic_action_taken` in GA4. Depends on `gtag` being loaded on the site. If GA4 isn't present, checkboxes still work visually but don't track.
+
+**Note:** Checkbox state does not persist across page loads — by design, it's a "did you do this?" prompt, not a saved to-do list.
