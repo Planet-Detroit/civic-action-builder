@@ -75,6 +75,7 @@ export function generateScript({ interactiveCheckboxes = true } = {}) {
         e.preventDefault();
         var msg = document.getElementById('civic-response-message').value.trim();
         var email = document.getElementById('civic-response-email').value.trim();
+        var hp = document.getElementById('civic-response-website').value;
         if (!msg) return;
         var payload = {
           message: msg,
@@ -82,6 +83,7 @@ export function generateScript({ interactiveCheckboxes = true } = {}) {
           article_title: document.title
         };
         if (email) payload.email = email;
+        if (hp) payload.website = hp;
         function showThanks() {
           if (wrapper) {
             wrapper.innerHTML = '';
@@ -285,6 +287,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     <p style="font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Did you take action? Let us know.</p>
     <form id="civic-response-submit">
       <textarea id="civic-response-message" placeholder="I attended a meeting, contacted my rep, submitted a comment..." required style="width: 100%; box-sizing: border-box; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 50px; margin-bottom: 6px;"></textarea>
+      <input type="text" name="website" id="civic-response-website" style="position: absolute; left: -9999px; opacity: 0; height: 0;" tabindex="-1" autocomplete="off">
       <div style="display: flex; gap: 8px;">
         <input type="email" id="civic-response-email" placeholder="Email (optional)" style="flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
         <button type="submit" style="padding: 6px 14px; background: #2f80c3; color: white; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 600;">Submit</button>
