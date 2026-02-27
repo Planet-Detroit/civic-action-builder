@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { generateHTML, generateScript } from '../lib/html.js'
 import { buildCalendarLinks } from '../lib/calendar.js'
 
-export default function OutputTab({ organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch }) {
+export default function OutputTab({ organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch, includeQuestionForm, setIncludeQuestionForm }) {
   const [copied, setCopied] = useState(false)
   const [copiedScript, setCopiedScript] = useState(false)
   const [interactiveCheckboxes, setInteractiveCheckboxes] = useState(true)
 
-  const html = generateHTML({ meetings, commentPeriods, officials, actions, organizations, whyItMatters, whosDeciding, whatToWatch, interactiveCheckboxes })
-  const script = generateScript({ interactiveCheckboxes })
+  const html = generateHTML({ meetings, commentPeriods, officials, actions, organizations, whyItMatters, whosDeciding, whatToWatch, interactiveCheckboxes, includeQuestionForm })
+  const script = generateScript({ interactiveCheckboxes, includeQuestionForm })
 
   const handleCopy = () => {
     navigator.clipboard.writeText(html)
@@ -205,6 +205,28 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
                 </div>
               )}
 
+              {/* Ask Planet Detroit question form preview */}
+              {includeQuestionForm && (
+                <div className="mt-4 p-3 bg-[#fff8e8] border border-[#f0dca0] rounded-md">
+                  <p className="text-sm font-semibold text-pd-text mb-1">Got a question about this?</p>
+                  <p className="text-xs text-pd-text-light mb-2">Ask our reporters. We'll only use your info to follow up on your question.</p>
+                  <textarea
+                    disabled
+                    placeholder="What would you like to know?"
+                    rows={2}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs mb-1 bg-white"
+                  />
+                  <div className="flex gap-1.5 mb-1">
+                    <input disabled type="text" placeholder="Name (optional)" className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white" />
+                    <input disabled type="text" placeholder="Zip (optional)" className="w-16 px-2 py-1 border border-gray-300 rounded text-xs bg-white" />
+                  </div>
+                  <div className="flex gap-2">
+                    <input disabled type="email" placeholder="Email (optional)" className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white" />
+                    <button disabled className="px-3 py-1 bg-pd-orange text-white text-xs rounded opacity-75">Ask</button>
+                  </div>
+                </div>
+              )}
+
               {/* Reader response form preview */}
               <div className="mt-4 p-3 bg-[#e8f0fe] rounded-md">
                 <p className="text-xs font-semibold text-pd-text mb-2">Did you take action? Let us know.</p>
@@ -241,16 +263,28 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
           </button>
         </div>
 
-        <label className="flex items-center gap-2 mb-4 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={interactiveCheckboxes}
-            onChange={(e) => setInteractiveCheckboxes(e.target.checked)}
-            className="rounded"
-          />
-          <span className="text-sm text-pd-text">Include interactive checkboxes (WordPress only)</span>
-          <span className="text-xs text-pd-text-light">— readers can mark actions they've taken</span>
-        </label>
+        <div className="space-y-2 mb-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={interactiveCheckboxes}
+              onChange={(e) => setInteractiveCheckboxes(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-sm text-pd-text">Include interactive checkboxes</span>
+            <span className="text-xs text-pd-text-light">— readers can mark actions they've taken</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeQuestionForm}
+              onChange={(e) => setIncludeQuestionForm(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-sm text-pd-text">Include "Ask Planet Detroit" question form</span>
+            <span className="text-xs text-pd-text-light">— readers can submit questions to reporters</span>
+          </label>
+        </div>
 
         <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto max-h-96">
           {isEmpty ? '<!-- Add items in Builder tab -->' : html}

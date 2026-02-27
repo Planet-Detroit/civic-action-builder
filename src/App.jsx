@@ -59,6 +59,7 @@ function AuthenticatedApp({ onSignOut }) {
   const [whyItMatters, setWhyItMatters] = useState(saved?.whyItMatters || '')
   const [whosDeciding, setWhosDeciding] = useState(saved?.whosDeciding || '')
   const [whatToWatch, setWhatToWatch] = useState(saved?.whatToWatch || '')
+  const [includeQuestionForm, setIncludeQuestionForm] = useState(saved?.includeQuestionForm || false)
 
   // Available options from database
   const [allMeetings, setAllMeetings] = useState([])
@@ -83,9 +84,9 @@ function AuthenticatedApp({ onSignOut }) {
     saveState({
       activeTab, articleData, analysis,
       organizations, meetings, commentPeriods, officials, actions,
-      whyItMatters, whosDeciding, whatToWatch
+      whyItMatters, whosDeciding, whatToWatch, includeQuestionForm
     })
-  }, [activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch])
+  }, [activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch, includeQuestionForm])
 
   const handleNewArticle = () => {
     clearSavedState()
@@ -100,6 +101,7 @@ function AuthenticatedApp({ onSignOut }) {
     setWhyItMatters('')
     setWhosDeciding('')
     setWhatToWatch('')
+    setIncludeQuestionForm(false)
   }
 
   const hasSavedState = !!(articleData || analysis || organizations.length || meetings.length ||
@@ -249,6 +251,8 @@ function AuthenticatedApp({ onSignOut }) {
             whyItMatters={whyItMatters}
             whosDeciding={whosDeciding}
             whatToWatch={whatToWatch}
+            includeQuestionForm={includeQuestionForm}
+            setIncludeQuestionForm={setIncludeQuestionForm}
           />
         )}
       </main>

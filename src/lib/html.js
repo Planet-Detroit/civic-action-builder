@@ -42,7 +42,7 @@ export function trackLink(url, contentLabel) {
 // Generate the JavaScript needed for civic action box interactivity.
 // This script should be added to WordPress ONCE (via theme or code snippets plugin),
 // NOT pasted into individual posts — WordPress strips <script> tags from post content.
-export function generateScript({ interactiveCheckboxes = true } = {}) {
+export function generateScript({ interactiveCheckboxes = true, includeQuestionForm = false } = {}) {
   let innerScript = ''
 
   // GA4 checkbox tracking (only when interactive checkboxes are enabled)
@@ -104,6 +104,55 @@ export function generateScript({ interactiveCheckboxes = true } = {}) {
       });
     }`
 
+  // Reader question form submission (only when includeQuestionForm is enabled)
+  if (includeQuestionForm) {
+    innerScript += `\n\n    var qForm = document.getElementById('ask-question-submit');
+    var qWrapper = document.getElementById('ask-question-form');
+    if (qForm) {
+      qForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var question = document.getElementById('ask-question-text').value.trim();
+        var hp = document.getElementById('ask-question-website').value;
+        if (!question) return;
+        var payload = {
+          question: question,
+          article_url: window.location.href,
+          article_title: document.title
+        };
+        var nameEl = document.getElementById('ask-question-name');
+        var emailEl = document.getElementById('ask-question-email');
+        var zipEl = document.getElementById('ask-question-zip');
+        if (nameEl && nameEl.value.trim()) payload.name = nameEl.value.trim();
+        if (emailEl && emailEl.value.trim()) payload.email = emailEl.value.trim();
+        if (zipEl && zipEl.value.trim()) payload.zip_code = zipEl.value.trim();
+        if (hp) payload.website = hp;
+        var btn = qForm.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+        fetch('https://ask-planet-detroit-production.up.railway.app/api/reader-questions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(function(r) { return r.json(); }).then(function(data) {
+          if (qWrapper) {
+            var html = '<p style="font-size: 14px; color: #2f80c3; font-weight: 600; margin: 0 0 12px 0;">Thank you! A reporter will review your question.</p>';
+            if (data.related_articles && data.related_articles.length > 0) {
+              html += '<p style="font-size: 13px; font-weight: 600; color: #333; margin: 0 0 6px 0;">Related coverage:</p><ul style="margin: 0; padding-left: 16px; font-size: 13px;">';
+              data.related_articles.forEach(function(a) {
+                html += '<li style="margin-bottom: 4px;"><a href="' + a.article_url + '" style="color: #2f80c3;">' + a.article_title + '</a></li>';
+              });
+              html += '</ul>';
+            }
+            qWrapper.innerHTML = html;
+          }
+        }).catch(function() {
+          if (qWrapper) {
+            qWrapper.innerHTML = '<p style="font-size: 14px; color: #2f80c3; font-weight: 600; margin: 0;">Thank you! A reporter will review your question.</p>';
+          }
+        });
+      });
+    }`
+  }
+
   // Wrap in IIFE with readyState check so it works whether placed in header or footer.
   // If DOM is still loading, wait for DOMContentLoaded; otherwise run immediately.
   let script = `(function() {
@@ -144,7 +193,7 @@ function sanitizeContext(html) {
 // Generate the civic action box HTML from the provided data
 // When interactiveCheckboxes is true, adds checkboxes for readers to mark actions taken
 // NOTE: JavaScript is generated separately via generateScript() — do NOT paste <script> into WordPress posts
-export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], whyItMatters = '', whosDeciding = '', whatToWatch = '', interactiveCheckboxes = true } = {}) {
+export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], whyItMatters = '', whosDeciding = '', whatToWatch = '', interactiveCheckboxes = true, includeQuestionForm = false } = {}) {
   let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
   <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Civic Action Toolbox</h3>\n`
 
@@ -280,6 +329,26 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     html += `  <div style="margin-bottom: 16px;">
     <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #333;">What to watch for next</h4>
     <div style="font-size: 14px; color: #333; line-height: 1.5;">${sanitizeContext(whatToWatch)}</div>
+  </div>\n`
+  }
+
+  // "Ask Planet Detroit" reader question form (optional)
+  if (includeQuestionForm) {
+    html += `  <div id="ask-question-form" style="margin: 16px 0 12px 0; padding: 12px; background: #fff8e8; border: 1px solid #f0dca0; border-radius: 6px;">
+    <p style="font-size: 14px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Got a question about this?</p>
+    <p style="font-size: 12px; color: #666; margin: 0 0 8px 0;">Ask our reporters. We'll only use your info to follow up on your question.</p>
+    <form id="ask-question-submit">
+      <textarea id="ask-question-text" placeholder="What would you like to know?" required maxlength="2000" style="width: 100%; box-sizing: border-box; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 60px; margin-bottom: 6px;"></textarea>
+      <input type="text" name="website" id="ask-question-website" style="position: absolute; left: -9999px; opacity: 0; height: 0;" tabindex="-1" autocomplete="off">
+      <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+        <input type="text" id="ask-question-name" placeholder="Name (optional)" style="flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+        <input type="text" id="ask-question-zip" placeholder="Zip (optional)" style="width: 80px; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <input type="email" id="ask-question-email" placeholder="Email (optional)" style="flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+        <button type="submit" style="padding: 6px 14px; background: #ea5a39; color: white; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 600;">Ask</button>
+      </div>
+    </form>
   </div>\n`
   }
 

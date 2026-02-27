@@ -558,4 +558,105 @@ describe('generateScript', () => {
     const script = generateScript()
     expect(script).toContain('ask-planet-detroit-production.up.railway.app/api/civic-responses')
   })
+
+  // Script should include question form handler when includeQuestionForm is true
+  it('includes question form handler when includeQuestionForm is true', () => {
+    const script = generateScript({ includeQuestionForm: true })
+    expect(script).toContain('ask-question-submit')
+    expect(script).toContain('/api/reader-questions')
+  })
+
+  // Script should NOT include question form handler by default
+  it('excludes question form handler by default', () => {
+    const script = generateScript()
+    expect(script).not.toContain('ask-question-submit')
+    expect(script).not.toContain('/api/reader-questions')
+  })
+
+  // Question form script should post article_url and article_title
+  it('question form captures article context', () => {
+    const script = generateScript({ includeQuestionForm: true })
+    expect(script).toContain('article_url')
+    expect(script).toContain('article_title')
+  })
+
+  // Question form script should include honeypot field
+  it('question form includes honeypot field', () => {
+    const script = generateScript({ includeQuestionForm: true })
+    expect(script).toContain('ask-question-website')
+  })
+
+  // Question form script should show related articles after submission
+  it('question form shows related articles', () => {
+    const script = generateScript({ includeQuestionForm: true })
+    expect(script).toContain('related_articles')
+  })
+})
+
+// =========================================================================
+// Reader Question Form — HTML and script for "Ask Planet Detroit" form
+// =========================================================================
+
+describe('generateHTML — question form', () => {
+  // Question form should appear when includeQuestionForm is true
+  it('includes question form when includeQuestionForm is true', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+      includeQuestionForm: true,
+    })
+    expect(html).toContain('ask-question-form')
+    expect(html).toContain('ask-question-text')
+  })
+
+  // Question form should NOT appear by default
+  it('does not include question form by default', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+    })
+    expect(html).not.toContain('ask-question-form')
+    expect(html).not.toContain('ask-question-text')
+  })
+
+  // Question form should have all expected fields
+  it('question form has required fields', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+      includeQuestionForm: true,
+    })
+    expect(html).toContain('ask-question-text')     // question textarea
+    expect(html).toContain('ask-question-name')      // name input
+    expect(html).toContain('ask-question-email')     // email input
+    expect(html).toContain('ask-question-zip')       // zip code input
+    expect(html).toContain('ask-question-website')   // honeypot
+  })
+
+  // Question form honeypot should be hidden
+  it('question form honeypot is hidden', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+      includeQuestionForm: true,
+    })
+    // Honeypot field should be positioned off-screen
+    expect(html).toMatch(/ask-question-website.*position:\s*absolute.*left:\s*-9999px/)
+  })
+
+  // Question form should include privacy note
+  it('question form includes privacy note', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+      includeQuestionForm: true,
+    })
+    expect(html).toContain('follow up')
+  })
+
+  // Question form should appear before the footer
+  it('question form appears before response form', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+      includeQuestionForm: true,
+    })
+    const questionPos = html.indexOf('ask-question-form')
+    const responsePos = html.indexOf('civic-response-form')
+    expect(questionPos).toBeLessThan(responsePos)
+  })
 })
