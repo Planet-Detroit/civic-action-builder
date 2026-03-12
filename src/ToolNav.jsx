@@ -27,15 +27,6 @@ export default function ToolNav({ onSignOut }) {
       >
         Civic Action
       </span>
-      <span style={{ color: "#475569", fontSize: "10px" }}>/</span>
-      <a
-        href="https://dashboard.tools.planetdetroit.org/"
-        style={{ fontSize: "12px", color: "#94a3b8", textDecoration: "none", padding: "4px 10px", borderRadius: "4px", transition: "color 0.15s" }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
-      >
-        Analytics
-      </a>
       {onSignOut && (
         <button
           onClick={onSignOut}
