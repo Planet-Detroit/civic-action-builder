@@ -29,12 +29,21 @@ export default function ToolNav({ onSignOut }) {
       </span>
       <span style={{ color: "#475569", fontSize: "10px" }}>/</span>
       <a
-        href="https://events.tools.planetdetroit.org/"
+        href="https://events.planetdetroit.org/admin"
         style={{ fontSize: "12px", color: "#94a3b8", textDecoration: "none", padding: "4px 10px", borderRadius: "4px", transition: "color 0.15s" }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
       >
         Events
+      </a>
+      <span style={{ color: "#475569", fontSize: "10px" }}>/</span>
+      <a
+        href="https://social.tools.planetdetroit.org/"
+        style={{ fontSize: "12px", color: "#94a3b8", textDecoration: "none", padding: "4px 10px", borderRadius: "4px", transition: "color 0.15s" }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
+      >
+        Social Publisher
       </a>
       {onSignOut && (
         <button
