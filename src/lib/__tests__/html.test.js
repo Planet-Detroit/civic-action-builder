@@ -212,6 +212,24 @@ describe('generateHTML', () => {
     expect(html).toContain('&lt;img src=x')
   })
 
+  // All links should open in a new tab so readers don't navigate away from the article
+  it('opens all links in a new tab', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test Meeting', start_datetime: '2025-03-15T10:00:00', agency: 'EGLE', agenda_url: 'https://example.com/agenda' }],
+      commentPeriods: [{ title: 'Comment', agency: 'EGLE', comment_url: 'https://example.com/comment' }],
+      officials: [{ name: 'Jane', party: 'D', office: 'Senate', district: 'D1', email: 'j@gov.gov' }],
+      actions: [{ title: 'Act', url: 'https://example.com/act' }],
+      organizations: [{ name: 'Org', url: 'https://example.com/org' }],
+    })
+    // Every <a> tag should have target="_blank"
+    const linkMatches = html.match(/<a\s[^>]*>/g) || []
+    expect(linkMatches.length).toBeGreaterThan(0)
+    linkMatches.forEach(tag => {
+      expect(tag).toContain('target="_blank"')
+      expect(tag).toContain('rel="noopener noreferrer"')
+    })
+  })
+
   // Should apply UTM tracking to organization URLs
   it('adds UTM params to org links', () => {
     const html = generateHTML({

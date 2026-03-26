@@ -164,7 +164,7 @@ export function generateScript({ interactiveCheckboxes = true, includeQuestionFo
             if (data.related_articles && data.related_articles.length > 0) {
               html += '<p style="font-size: 13px; font-weight: 600; color: #333; margin: 0 0 6px 0;">Related coverage:</p><ul style="margin: 0; padding-left: 16px; font-size: 13px;">';
               data.related_articles.forEach(function(a) {
-                html += '<li style="margin-bottom: 4px;"><a href="' + a.article_url + '" style="color: #2f80c3;">' + a.article_title + '</a></li>';
+                html += '<li style="margin-bottom: 4px;"><a href="' + a.article_url + '" target="_blank" rel="noopener noreferrer" style="color: #2f80c3;">' + a.article_title + '</a></li>';
               });
               html += '</ul>';
             }
@@ -263,7 +263,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
       const trackedOutlook = trackLink(cal.outlook, 'calendar_outlook')
       const checkbox = interactiveCheckboxes ? `<label style="display: flex; align-items: flex-start; gap: 6px; cursor: pointer;"><input type="checkbox" class="civic-checkbox" data-action="attend_meeting" data-label="${esc(meeting.title)}" style="margin-top: 3px; cursor: pointer;"> <span>` : ''
       const checkboxEnd = interactiveCheckboxes ? `</span></label>` : ''
-      html += `      <li style="margin-bottom: 8px; ${interactiveCheckboxes ? 'list-style: none;' : ''}">${checkbox}<strong>${esc(meeting.title)}</strong>${esc(agency)} — ${date}${trackedLink ? ` · <a href="${esc(trackedLink)}" style="color: #2f80c3;">Details</a>` : ''}<br><span style="font-size: 12px;">📅 <a href="${esc(trackedGoogle)}" style="color: #2f80c3;">Google</a> · <a href="${esc(trackedOutlook)}" style="color: #2f80c3;">Outlook</a></span>${checkboxEnd}</li>\n`
+      html += `      <li style="margin-bottom: 8px; ${interactiveCheckboxes ? 'list-style: none;' : ''}">${checkbox}<strong>${esc(meeting.title)}</strong>${esc(agency)} — ${date}${trackedLink ? ` · <a href="${esc(trackedLink)}" target="_blank" rel="noopener noreferrer" style="color: #2f80c3;">Details</a>` : ''}<br><span style="font-size: 12px;">📅 <a href="${esc(trackedGoogle)}" target="_blank" rel="noopener noreferrer" style="color: #2f80c3;">Google</a> · <a href="${esc(trackedOutlook)}" target="_blank" rel="noopener noreferrer" style="color: #2f80c3;">Outlook</a></span>${checkboxEnd}</li>\n`
     })
     html += `    </ul>
   </div>\n`
@@ -281,7 +281,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
       const checkboxEnd = interactiveCheckboxes ? `</span></label>` : ''
       html += `      <li style="margin-bottom: 8px; ${interactiveCheckboxes ? 'list-style: none;' : ''}">${checkbox}`
       if (period.comment_url) {
-        html += `<a href="${esc(trackLink(period.comment_url, `comment_${period.agency || period.title}`))}" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${esc(period.title)}</a>`
+        html += `<a href="${esc(trackLink(period.comment_url, `comment_${period.agency || period.title}`))}" target="_blank" rel="noopener noreferrer" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${esc(period.title)}</a>`
       } else {
         html += `<strong>${esc(period.title)}</strong>`
       }
@@ -304,7 +304,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     <ul style="${ulStyle}">\n`
     officials.forEach(official => {
       const contactParts = []
-      if (official.email) contactParts.push(`<a href="${safeUrl(`mailto:${official.email}`)}" style="color: #2f80c3; font-size: 12px;">${esc(official.email)}</a>`)
+      if (official.email) contactParts.push(`<a href="${safeUrl(`mailto:${official.email}`)}" target="_blank" rel="noopener noreferrer" style="color: #2f80c3; font-size: 12px;">${esc(official.email)}</a>`)
       if (official.phone) contactParts.push(`<span style="color: #666; font-size: 12px;">${esc(official.phone)}</span>`)
       const checkbox = interactiveCheckboxes ? `<label style="display: flex; align-items: flex-start; gap: 6px; cursor: pointer;"><input type="checkbox" class="civic-checkbox" data-action="contact_official" data-label="${esc(official.name)}" style="margin-top: 3px; cursor: pointer;"> <span>` : ''
       const checkboxEnd = interactiveCheckboxes ? `</span></label>` : ''
@@ -324,7 +324,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
       const checkboxEnd = interactiveCheckboxes ? `</span></label>` : ''
       html += `      <li style="margin-bottom: 8px; ${interactiveCheckboxes ? 'list-style: none;' : ''}">${checkbox}`
       if (action.url && safeUrl(action.url)) {
-        html += `<a href="${esc(trackLink(action.url, `action_${action.title}`))}" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${esc(action.title)}</a>`
+        html += `<a href="${esc(trackLink(action.url, `action_${action.title}`))}" target="_blank" rel="noopener noreferrer" style="color: #2f80c3; text-decoration: none; font-weight: 600;">${esc(action.title)}</a>`
       } else {
         html += `<strong>${esc(action.title)}</strong>`
       }
@@ -344,7 +344,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     organizations.forEach(org => {
       const checkbox = interactiveCheckboxes ? `<label style="display: flex; align-items: flex-start; gap: 6px; cursor: pointer;"><input type="checkbox" class="civic-checkbox" data-action="explore_organization" data-label="${esc(org.name)}" style="margin-top: 3px; cursor: pointer;"> <span>` : ''
       const checkboxEnd = interactiveCheckboxes ? `</span></label>` : ''
-      html += `      <li style="margin-bottom: 4px; ${interactiveCheckboxes ? 'list-style: none;' : ''}">${checkbox}<a href="${esc(trackLink(org.url || '#', `org_${org.name}`))}" style="color: #2f80c3; text-decoration: none;">${esc(org.name)}</a>${checkboxEnd}</li>\n`
+      html += `      <li style="margin-bottom: 4px; ${interactiveCheckboxes ? 'list-style: none;' : ''}">${checkbox}<a href="${esc(trackLink(org.url || '#', `org_${org.name}`))}" target="_blank" rel="noopener noreferrer" style="color: #2f80c3; text-decoration: none;">${esc(org.name)}</a>${checkboxEnd}</li>\n`
     })
     html += `    </ul>
   </div>\n`
@@ -397,7 +397,7 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
     <p id="civic-response-thanks" style="display: none; font-size: 13px; color: #2f80c3; margin: 8px 0 0 0; font-weight: 600;">Thank you! Your response has been recorded.</p>
   </div>
   <p style="font-size: 11px; color: #888; margin: 0; padding-top: 12px; border-top: 1px solid #d0d8e0;">
-    Civic resources compiled by <a href="https://planetdetroit.org" style="color: #2f80c3;">Planet Detroit</a>
+    Civic resources compiled by <a href="https://planetdetroit.org" target="_blank" rel="noopener noreferrer" style="color: #2f80c3;">Planet Detroit</a>
   </p>
 </div>`
 
