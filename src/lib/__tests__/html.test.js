@@ -346,7 +346,7 @@ describe('generateHTML — thumbs-up indicator', () => {
       meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
     })
     expect(html).toContain('civic-thumbsup-btn')
-    expect(html).toContain('I took civic action!')
+    expect(html).toContain("I'm taking civic action!")
   })
 
   // Thumbs-up should appear before the response form
@@ -377,7 +377,7 @@ describe('generateHTML — reader response form', () => {
       meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
     })
     expect(html).toContain('civic-response-form')
-    expect(html).toContain('Did you take action? Let us know.')
+    expect(html).toContain('Are you taking action? Let us know.')
   })
 
   // Response form should have a textarea for the message
@@ -538,7 +538,7 @@ describe('generateHTML — consolidated reader form', () => {
     const html = generateHTML({
       meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
     })
-    expect(html).toContain('Did you take action? Let us know.')
+    expect(html).toContain('Are you taking action? Let us know.')
   })
 
   // There should be no separate email capture form

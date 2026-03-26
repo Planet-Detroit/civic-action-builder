@@ -230,13 +230,13 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
               {/* Thumbs-up quick action preview */}
               <div className="mt-4 text-center">
                 <button disabled className="inline-flex items-center gap-1.5 border-2 border-[#ea5a39] rounded-full px-4 py-2 text-sm font-semibold text-pd-text opacity-75">
-                  <span className="text-lg">👍</span> I took civic action!
+                  <span className="text-lg">👍</span> I'm taking civic action!
                 </button>
               </div>
 
               {/* Reader response form preview */}
               <div className="mt-2 p-3 bg-[#e8f0fe] rounded-md">
-                <p className="text-xs font-semibold text-pd-text mb-2">Did you take action? Let us know.</p>
+                <p className="text-xs font-semibold text-pd-text mb-2">Are you taking action? Let us know.</p>
                 <textarea
                   disabled
                   placeholder="I attended a meeting, contacted my rep, submitted a comment..."

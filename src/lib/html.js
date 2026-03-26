@@ -381,11 +381,11 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   html += `  <div id="civic-thumbsup" style="margin: 16px 0 8px 0; text-align: center;">
     <button id="civic-thumbsup-btn" style="background: none; border: 2px solid #ea5a39; border-radius: 24px; padding: 8px 18px; cursor: pointer; font-size: 16px; color: #333; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;" aria-label="I took civic action">
       <span id="civic-thumbsup-icon" style="font-size: 22px;">👍</span>
-      <span style="font-size: 13px; font-weight: 600;">I took civic action!</span>
+      <span style="font-size: 13px; font-weight: 600;">I'm taking civic action!</span>
     </button>
   </div>
   <div id="civic-response-form" style="margin: 8px 0 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">
-    <p style="font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Did you take action? Let us know.</p>
+    <p style="font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Are you taking action? Let us know.</p>
     <form id="civic-response-submit">
       <textarea id="civic-response-message" placeholder="I attended a meeting, contacted my rep, submitted a comment..." required style="width: 100%; box-sizing: border-box; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 50px; margin-bottom: 6px;"></textarea>
       <input type="text" name="website" id="civic-response-website" style="position: absolute; left: -9999px; opacity: 0; height: 0;" tabindex="-1" autocomplete="off">
