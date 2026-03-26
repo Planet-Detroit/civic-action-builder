@@ -76,16 +76,6 @@ export async function fetchAllOrganizations() {
   return []
 }
 
-export async function fetchCivicResponseStats() {
-  try {
-    const response = await fetch(`${API_BASE}/api/civic-responses/stats`)
-    if (response.ok) return response.json()
-  } catch (e) {
-    console.log('Civic response stats endpoint not available')
-  }
-  return { total: 0, last_30_days: 0, last_7_days: 0, by_article: [], recent_responses: [] }
-}
-
 export async function fetchAllOfficials() {
   try {
     const response = await fetch(`${API_BASE}/api/officials?limit=200`)
