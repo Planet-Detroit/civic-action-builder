@@ -6,6 +6,7 @@ import ToolNav from './ToolNav.jsx'
 import ArticleInputTab from './tabs/ArticleInputTab.jsx'
 import BuilderTab from './tabs/BuilderTab.jsx'
 import OutputTab from './tabs/OutputTab.jsx'
+import AnalyticsTab from './tabs/AnalyticsTab.jsx'
 
 function Header() {
   return (
@@ -192,6 +193,9 @@ function AuthenticatedApp({ onSignOut }) {
             <TabButton active={activeTab === 'output'} onClick={() => setActiveTab('output')}>
               3. Output
             </TabButton>
+            <TabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')}>
+              4. Analytics
+            </TabButton>
             {hasSavedState && (
               <button
                 onClick={handleNewArticle}
@@ -255,6 +259,8 @@ function AuthenticatedApp({ onSignOut }) {
             setIncludeQuestionForm={setIncludeQuestionForm}
           />
         )}
+
+        {activeTab === 'analytics' && <AnalyticsTab />}
       </main>
 
       <footer className="bg-white border-t border-gray-200">

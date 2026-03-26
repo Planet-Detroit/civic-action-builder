@@ -36,8 +36,8 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
           </div>
         ) : (
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
-            <div className="bg-[#f0f5f8] border border-[#d0d8e0] rounded-lg p-5 max-w-sm shadow-sm">
-              <h3 className="font-heading font-bold text-lg text-pd-text mb-3 pb-2 border-b-2 border-pd-blue">
+            <div className="bg-[#f0f5f8] border-[3px] border-[#ea5a39] rounded-lg p-5 max-w-sm shadow-sm">
+              <h3 className="font-heading font-bold text-lg text-pd-text mb-3 pb-2 border-b-2 border-[#ea5a39]">
                 🗳️ Civic Action Toolbox
               </h3>
 
@@ -227,8 +227,15 @@ export default function OutputTab({ organizations, meetings, commentPeriods, off
                 </div>
               )}
 
+              {/* Thumbs-up quick action preview */}
+              <div className="mt-4 text-center">
+                <button disabled className="inline-flex items-center gap-1.5 border-2 border-[#ea5a39] rounded-full px-4 py-2 text-sm font-semibold text-pd-text opacity-75">
+                  <span className="text-lg">👍</span> I took civic action!
+                </button>
+              </div>
+
               {/* Reader response form preview */}
-              <div className="mt-4 p-3 bg-[#e8f0fe] rounded-md">
+              <div className="mt-2 p-3 bg-[#e8f0fe] rounded-md">
                 <p className="text-xs font-semibold text-pd-text mb-2">Did you take action? Let us know.</p>
                 <textarea
                   disabled

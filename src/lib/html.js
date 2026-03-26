@@ -66,6 +66,32 @@ export function generateScript({ interactiveCheckboxes = true, includeQuestionFo
     }\n\n`
   }
 
+  // Thumbs-up quick action toggle + GA4 event
+  innerScript += `    var thumbBtn = document.getElementById('civic-thumbsup-btn');
+    var thumbIcon = document.getElementById('civic-thumbsup-icon');
+    if (thumbBtn) {
+      var thumbActive = false;
+      thumbBtn.addEventListener('click', function() {
+        thumbActive = !thumbActive;
+        if (thumbActive) {
+          thumbBtn.style.background = '#ea5a39';
+          thumbBtn.style.color = '#fff';
+          thumbBtn.style.borderColor = '#ea5a39';
+          thumbIcon.style.transform = 'scale(1.2)';
+        } else {
+          thumbBtn.style.background = 'none';
+          thumbBtn.style.color = '#333';
+          thumbBtn.style.borderColor = '#ea5a39';
+          thumbIcon.style.transform = 'scale(1)';
+        }
+        if (typeof gtag !== 'undefined') {
+          gtag('event', thumbActive ? 'civic_action_thumbsup' : 'civic_action_thumbsup_removed', {
+            article_url: window.location.href
+          });
+        }
+      });
+    }\n\n`
+
   // Reader response form submission — uses createElement to avoid long innerHTML
   // strings that break when copy-pasted into WPCode
   innerScript += `    var form = document.getElementById('civic-response-submit');
@@ -194,8 +220,8 @@ function sanitizeContext(html) {
 // When interactiveCheckboxes is true, adds checkboxes for readers to mark actions taken
 // NOTE: JavaScript is generated separately via generateScript() — do NOT paste <script> into WordPress posts
 export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], whyItMatters = '', whosDeciding = '', whatToWatch = '', interactiveCheckboxes = true, includeQuestionForm = false } = {}) {
-  let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 1px solid #d0d8e0; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
-  <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Civic Action Toolbox</h3>\n`
+  let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 3px solid #ea5a39; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
+  <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #ea5a39;">🗳️ Civic Action Toolbox</h3>\n`
 
   // "Why it matters" — renders first, after the title
   if (whyItMatters?.trim()) {
@@ -352,7 +378,13 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   </div>\n`
   }
 
-  html += `  <div id="civic-response-form" style="margin: 16px 0 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">
+  html += `  <div id="civic-thumbsup" style="margin: 16px 0 8px 0; text-align: center;">
+    <button id="civic-thumbsup-btn" style="background: none; border: 2px solid #ea5a39; border-radius: 24px; padding: 8px 18px; cursor: pointer; font-size: 16px; color: #333; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;" aria-label="I took civic action">
+      <span id="civic-thumbsup-icon" style="font-size: 22px;">👍</span>
+      <span style="font-size: 13px; font-weight: 600;">I took civic action!</span>
+    </button>
+  </div>
+  <div id="civic-response-form" style="margin: 8px 0 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">
     <p style="font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600;">Did you take action? Let us know.</p>
     <form id="civic-response-submit">
       <textarea id="civic-response-message" placeholder="I attended a meeting, contacted my rep, submitted a comment..." required style="width: 100%; box-sizing: border-box; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 50px; margin-bottom: 6px;"></textarea>

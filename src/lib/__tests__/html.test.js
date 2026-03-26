@@ -109,12 +109,14 @@ describe('trackLink', () => {
 })
 
 describe('generateHTML', () => {
-  // Should produce valid HTML with civic-action-box wrapper
+  // Should produce valid HTML with civic-action-box wrapper, title, and orange border
   it('generates wrapper div with default content', () => {
     const html = generateHTML()
     expect(html).toContain('civic-action-box')
     expect(html).toContain('Civic Action Toolbox')
     expect(html).toContain('Planet Detroit')
+    // Orange CTA border
+    expect(html).toContain('border: 3px solid #ea5a39')
   })
 
   // Should include meetings section when meetings are provided
@@ -333,6 +335,41 @@ describe('generateHTML — new context sections', () => {
 // Reader response form in HTML output
 // =========================================================================
 
+// =========================================================================
+// Thumbs-up quick action indicator
+// =========================================================================
+
+describe('generateHTML — thumbs-up indicator', () => {
+  // Thumbs-up button should appear above the response form
+  it('includes thumbs-up button', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+    })
+    expect(html).toContain('civic-thumbsup-btn')
+    expect(html).toContain('I took civic action!')
+  })
+
+  // Thumbs-up should appear before the response form
+  it('renders thumbs-up before response form', () => {
+    const html = generateHTML({
+      meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
+    })
+    const thumbPos = html.indexOf('civic-thumbsup')
+    const formPos = html.indexOf('civic-response-form')
+    expect(thumbPos).toBeLessThan(formPos)
+  })
+})
+
+describe('generateScript — thumbs-up GA4 events', () => {
+  // Script should include thumbs-up toggle handler
+  it('includes thumbs-up GA4 event tracking', () => {
+    const script = generateScript()
+    expect(script).toContain('civic-thumbsup-btn')
+    expect(script).toContain('civic_action_thumbsup')
+    expect(script).toContain('civic_action_thumbsup_removed')
+  })
+})
+
 describe('generateHTML — reader response form', () => {
   // Response form should always be included (it's part of the civic action box)
   it('includes the response form at the bottom', () => {
@@ -539,11 +576,14 @@ describe('generateScript', () => {
     expect(script).toContain('civic_action_untaken')
   })
 
-  // Script should NOT include GA4 tracking when interactiveCheckboxes is false
-  it('excludes GA4 tracking when interactiveCheckboxes is false', () => {
+  // Script should NOT include checkbox GA4 tracking when interactiveCheckboxes is false
+  // (thumbs-up GA4 events are always present)
+  it('excludes checkbox GA4 tracking when interactiveCheckboxes is false', () => {
     const script = generateScript({ interactiveCheckboxes: false })
     expect(script).not.toContain('civic_action_taken')
-    expect(script).not.toContain('gtag')
+    expect(script).not.toContain('civic_action_untaken')
+    // Thumbs-up GA4 events should still be present
+    expect(script).toContain('civic_action_thumbsup')
   })
 
   // Script should always include response form submission handler
