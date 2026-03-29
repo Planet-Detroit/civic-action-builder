@@ -286,15 +286,17 @@ export default function App() {
       return
     }
 
-    // Check Supabase session first (team members)
-    import('./lib/supabase.js').then(({ getSupabase }) => {
-      const supabase = getSupabase()
-      supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check Supabase session first (team members), then fall back to guest cookie
+    const checkAuth = async () => {
+      try {
+        const { getSupabase } = await import('./lib/supabase.js')
+        const supabase = getSupabase()
+        const { data: { session } } = await supabase.auth.getSession()
+
         if (session) {
           setIsAuthenticated(true)
           setUserType('team')
           setDisplayName(session.user.email)
-          // Fetch display name from user_roles
           supabase.from('user_roles')
             .select('display_name, role')
             .eq('user_id', session.user.id)
@@ -303,38 +305,42 @@ export default function App() {
               if (data?.display_name) setDisplayName(data.display_name)
             })
           setAuthChecked(true)
+
+          // Listen for auth state changes (magic link callback)
+          supabase.auth.onAuthStateChange((event, s) => {
+            if (event === 'SIGNED_IN' && s) {
+              setIsAuthenticated(true)
+              setUserType('team')
+              setDisplayName(s.user.email)
+              supabase.from('user_roles')
+                .select('display_name, role')
+                .eq('user_id', s.user.id)
+                .single()
+                .then(({ data }) => {
+                  if (data?.display_name) setDisplayName(data.display_name)
+                })
+            }
+          })
           return
         }
-        // No Supabase session — check guest cookie (existing flow)
-        fetch('/api/auth/check')
-          .then(res => {
-            if (res.ok) {
-              setIsAuthenticated(true)
-              setUserType('guest')
-              setDisplayName('Guest')
-            }
-            setAuthChecked(true)
-          })
-          .catch(() => setAuthChecked(true))
-      })
+      } catch {
+        // Supabase not available — fall through to guest check
+      }
 
-      // Listen for auth state changes (magic link callback)
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
+      // No Supabase session — check guest cookie (existing flow)
+      try {
+        const res = await fetch('/api/auth/check')
+        if (res.ok) {
           setIsAuthenticated(true)
-          setUserType('team')
-          setDisplayName(session.user.email)
-          supabase.from('user_roles')
-            .select('display_name, role')
-            .eq('user_id', session.user.id)
-            .single()
-            .then(({ data }) => {
-              if (data?.display_name) setDisplayName(data.display_name)
-            })
-          setAuthChecked(true)
+          setUserType('guest')
+          setDisplayName('Guest')
         }
-      })
-    })
+      } catch {
+        // No auth available
+      }
+      setAuthChecked(true)
+    }
+    checkAuth()
   }, [])
 
   const handleSignOut = async () => {
