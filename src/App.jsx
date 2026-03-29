@@ -170,6 +170,20 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
     setIncludeQuestionForm(data.includeQuestionForm || false)
   }
 
+  // Submit draft for editor review
+  const handleSubmitForReview = async () => {
+    if (!currentDraftId) return
+    try {
+      const { updateDraftStatus } = await import('./lib/drafts.js')
+      await updateDraftStatus(currentDraftId, 'submitted')
+      setSaveStatus('saved')
+      alert('Draft submitted for review!')
+    } catch (err) {
+      console.error('Submit for review failed:', err)
+      alert('Failed to submit. Please try again.')
+    }
+  }
+
   const hasSavedState = !!(articleData || analysis || organizations.length || meetings.length ||
     commentPeriods.length || officials.length || actions.length ||
     whyItMatters.trim() || whosDeciding.trim() || whatToWatch.trim())
@@ -245,51 +259,60 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
       <ToolNav onSignOut={onSignOut} displayName={displayName} />
       <Header />
 
-      {/* Tabs — hidden when viewing drafts dashboard */}
-      {!showDrafts && (
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center">
-              {userType === 'team' && (
-                <TabButton active={false} onClick={() => setShowDrafts(true)}>
-                  Drafts
-                </TabButton>
-              )}
-              <TabButton active={activeTab === 'input' && !showDrafts} onClick={() => { setShowDrafts(false); setActiveTab('input') }}>
-                1. Article Input
-              </TabButton>
-              <TabButton active={activeTab === 'builder' && !showDrafts} onClick={() => { setShowDrafts(false); setActiveTab('builder') }}>
-                2. Builder
-              </TabButton>
-              <TabButton active={activeTab === 'output' && !showDrafts} onClick={() => { setShowDrafts(false); setActiveTab('output') }}>
-                3. Output
-              </TabButton>
-              <span className="ml-auto flex items-center gap-3">
-                {saveStatus === 'saving' && <span className="text-xs text-gray-400">Saving...</span>}
-                {saveStatus === 'saved' && <span className="text-xs text-green-600">Saved</span>}
-                {saveStatus === 'error' && <span className="text-xs text-red-500">Save failed</span>}
-                {hasSavedState && (
-                  <button
-                    onClick={handleNewArticle}
-                    className="px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
-                  >
-                    New Article
-                  </button>
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
-        {showDrafts && userType === 'team' && (
+      {/* Full-page drafts dashboard OR builder tabs */}
+      {showDrafts && userType === 'team' ? (
+        <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
           <DraftsDashboard
             onLoadDraft={handleLoadDraft}
             onNewArticle={handleNewArticle}
             userRole={userRole}
           />
-        )}
+        </main>
+      ) : (
+      <>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center">
+            {userType === 'team' && (
+              <TabButton active={false} onClick={() => setShowDrafts(true)}>
+                ← Drafts
+              </TabButton>
+            )}
+            <TabButton active={activeTab === 'input'} onClick={() => setActiveTab('input')}>
+              1. Article Input
+            </TabButton>
+            <TabButton active={activeTab === 'builder'} onClick={() => setActiveTab('builder')}>
+              2. Builder
+            </TabButton>
+            <TabButton active={activeTab === 'output'} onClick={() => setActiveTab('output')}>
+              3. Output
+            </TabButton>
+            <span className="ml-auto flex items-center gap-3">
+              {saveStatus === 'saving' && <span className="text-xs text-gray-400">Saving...</span>}
+              {saveStatus === 'saved' && <span className="text-xs text-green-600">Saved</span>}
+              {saveStatus === 'error' && <span className="text-xs text-red-500">Save failed</span>}
+              {userType === 'team' && currentDraftId && (
+                <button
+                  onClick={handleSubmitForReview}
+                  className="px-3 py-1.5 text-xs font-semibold text-blue-600 border border-blue-300 rounded hover:bg-blue-50 transition-colors"
+                >
+                  Submit for Review
+                </button>
+              )}
+              {hasSavedState && (
+                <button
+                  onClick={handleNewArticle}
+                  className="px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
+                >
+                  New Article
+                </button>
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
         {activeTab === 'input' && (
           <ArticleInputTab
             articleData={articleData}
@@ -342,6 +365,8 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
         )}
 
       </main>
+      </>
+      )}
 
       <footer className="bg-white border-t border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4">

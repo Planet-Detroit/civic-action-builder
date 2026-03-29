@@ -38,6 +38,7 @@ export default function DraftsDashboard({ onLoadDraft, onNewArticle, userRole })
   }
 
   const statusLabel = (status) => {
+    if (status === 'submitted') return { text: 'Ready for Review', color: 'bg-orange-100 text-orange-700' }
     if (status === 'complete') return { text: 'Complete', color: 'bg-green-100 text-green-700' }
     if (status === 'archived') return { text: 'Archived', color: 'bg-gray-100 text-gray-500' }
     return { text: 'In progress', color: 'bg-blue-100 text-blue-700' }
