@@ -1,4 +1,4 @@
-export default function ToolNav({ onSignOut }) {
+export default function ToolNav({ onSignOut, displayName }) {
   return (
     <nav style={{ background: "#1e293b", padding: "0 16px", display: "flex", alignItems: "center", gap: "4px", height: "32px", fontFamily: "Arial, Helvetica, sans-serif" }}>
       <a href="https://tools.planetdetroit.org/" style={{ fontSize: "11px", color: "#94a3b8", letterSpacing: "0.5px", marginRight: "12px", textTransform: "uppercase", fontWeight: "bold", textDecoration: "none" }}>
@@ -45,10 +45,16 @@ export default function ToolNav({ onSignOut }) {
       >
         Social Publisher
       </a>
+      <span style={{ marginLeft: "auto" }} />
+      {displayName && (
+        <span style={{ fontSize: "11px", color: "#94a3b8", padding: "4px 8px" }}>
+          {displayName}
+        </span>
+      )}
       {onSignOut && (
         <button
           onClick={onSignOut}
-          style={{ fontSize: "11px", color: "#64748b", background: "none", border: "none", cursor: "pointer", marginLeft: "auto", padding: "4px 8px", transition: "color 0.15s", fontFamily: "inherit" }}
+          style={{ fontSize: "11px", color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: "4px 8px", transition: "color 0.15s", fontFamily: "inherit" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "#94a3b8")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "#64748b")}
         >

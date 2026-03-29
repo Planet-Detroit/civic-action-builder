@@ -40,7 +40,7 @@ function TabButton({ active, onClick, children }) {
   )
 }
 
-function AuthenticatedApp({ onSignOut }) {
+function AuthenticatedApp({ onSignOut, userType, displayName }) {
   // Load saved state from localStorage
   const saved = useState(() => loadSavedState())[0]
 
@@ -176,7 +176,7 @@ function AuthenticatedApp({ onSignOut }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-pd-bg">
-      <ToolNav onSignOut={onSignOut} />
+      <ToolNav onSignOut={onSignOut} displayName={displayName} />
       <Header />
 
       {/* Tabs */}
@@ -273,27 +273,80 @@ function AuthenticatedApp({ onSignOut }) {
 export default function App() {
   const [authChecked, setAuthChecked] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // 'team' = Supabase magic link user, 'guest' = shared password user
+  const [userType, setUserType] = useState('guest')
+  const [displayName, setDisplayName] = useState('')
 
   useEffect(() => {
     if (import.meta.env.DEV) {
       setIsAuthenticated(true)
+      setUserType('team')
+      setDisplayName('Dev User')
       setAuthChecked(true)
       return
     }
-    fetch('/api/auth/check')
-      .then(res => {
-        setIsAuthenticated(res.ok)
-        setAuthChecked(true)
+
+    // Check Supabase session first (team members)
+    import('./lib/supabase.js').then(({ getSupabase }) => {
+      const supabase = getSupabase()
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setIsAuthenticated(true)
+          setUserType('team')
+          setDisplayName(session.user.email)
+          // Fetch display name from user_roles
+          supabase.from('user_roles')
+            .select('display_name, role')
+            .eq('user_id', session.user.id)
+            .single()
+            .then(({ data }) => {
+              if (data?.display_name) setDisplayName(data.display_name)
+            })
+          setAuthChecked(true)
+          return
+        }
+        // No Supabase session — check guest cookie (existing flow)
+        fetch('/api/auth/check')
+          .then(res => {
+            if (res.ok) {
+              setIsAuthenticated(true)
+              setUserType('guest')
+              setDisplayName('Guest')
+            }
+            setAuthChecked(true)
+          })
+          .catch(() => setAuthChecked(true))
       })
-      .catch(() => {
-        setIsAuthenticated(false)
-        setAuthChecked(true)
+
+      // Listen for auth state changes (magic link callback)
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          setIsAuthenticated(true)
+          setUserType('team')
+          setDisplayName(session.user.email)
+          supabase.from('user_roles')
+            .select('display_name, role')
+            .eq('user_id', session.user.id)
+            .single()
+            .then(({ data }) => {
+              if (data?.display_name) setDisplayName(data.display_name)
+            })
+          setAuthChecked(true)
+        }
       })
+    })
   }, [])
 
   const handleSignOut = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    if (userType === 'team') {
+      const { getSupabase } = await import('./lib/supabase.js')
+      await getSupabase().auth.signOut()
+    }
+    // Also clear guest cookie
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
     setIsAuthenticated(false)
+    setUserType('guest')
+    setDisplayName('')
   }
 
   if (!authChecked) {
@@ -305,8 +358,16 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />
+    return (
+      <LoginPage
+        onGuestLogin={() => {
+          setIsAuthenticated(true)
+          setUserType('guest')
+          setDisplayName('Guest')
+        }}
+      />
+    )
   }
 
-  return <AuthenticatedApp onSignOut={handleSignOut} />
+  return <AuthenticatedApp onSignOut={handleSignOut} userType={userType} displayName={displayName} />
 }
