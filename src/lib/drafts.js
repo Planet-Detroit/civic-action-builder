@@ -17,7 +17,10 @@ export async function saveDraft({ draftId, userId, articleTitle, articleUrl, sta
       })
       .eq('id', draftId)
 
-    if (error) throw error
+    if (error) {
+      console.error('Draft update failed:', error.message, error.details)
+      throw error
+    }
     return draftId
   }
 
@@ -34,7 +37,10 @@ export async function saveDraft({ draftId, userId, articleTitle, articleUrl, sta
     .select('id')
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Draft insert failed:', error.message, error.details)
+    throw error
+  }
   return data.id
 }
 
@@ -55,37 +61,36 @@ export async function loadDraft(draftId) {
 // Editors/admins see all drafts; reporters see only their own (enforced by RLS)
 export async function listDrafts() {
   const supabase = getSupabase()
+
+  // Simple query without joins — get drafts, then look up author names separately
   const { data, error } = await supabase
     .from('civic_action_drafts')
-    .select(`
-      id,
-      article_title,
-      article_url,
-      status,
-      created_at,
-      updated_at,
-      user_id,
-      user_roles!inner(display_name)
-    `)
+    .select('id, article_title, article_url, status, created_at, updated_at, user_id')
     .neq('status', 'archived')
     .order('updated_at', { ascending: false })
 
   if (error) {
-    // If the join fails (e.g., no user_roles entry), try without join
-    const { data: fallback, error: fallbackError } = await supabase
-      .from('civic_action_drafts')
-      .select('id, article_title, article_url, status, created_at, updated_at, user_id')
-      .neq('status', 'archived')
-      .order('updated_at', { ascending: false })
+    console.error('List drafts failed:', error.message)
+    throw error
+  }
 
-    if (fallbackError) throw fallbackError
-    return fallback.map(d => ({ ...d, author_name: 'Unknown' }))
+  if (!data || data.length === 0) return []
+
+  // Look up author names from user_roles
+  const userIds = [...new Set(data.map(d => d.user_id))]
+  const { data: roles } = await supabase
+    .from('user_roles')
+    .select('user_id, display_name')
+    .in('user_id', userIds)
+
+  const nameMap = {}
+  if (roles) {
+    for (const r of roles) nameMap[r.user_id] = r.display_name
   }
 
   return data.map(d => ({
     ...d,
-    author_name: d.user_roles?.display_name || 'Unknown',
-    user_roles: undefined,
+    author_name: nameMap[d.user_id] || 'Unknown',
   }))
 }
 

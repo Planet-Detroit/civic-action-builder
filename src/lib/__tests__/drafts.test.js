@@ -2,12 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ============================================================
 // Phase 3 Tests — Draft Persistence
-//
-// - saveDraft creates a new draft when no draftId
-// - saveDraft updates existing draft when draftId provided
-// - listDrafts returns drafts ordered by updated_at
-// - updateDraftStatus changes the status
-// - loadDraft retrieves a single draft
 // ============================================================
 
 const mockInsert = vi.fn()
@@ -17,10 +11,11 @@ const mockEq = vi.fn()
 const mockNeq = vi.fn()
 const mockOrder = vi.fn()
 const mockSingle = vi.fn()
+const mockIn = vi.fn()
 
 vi.mock('../supabase.js', () => ({
   getSupabase: () => ({
-    from: () => ({
+    from: (table) => ({
       insert: (...args) => {
         mockInsert(...args)
         return { select: () => ({ single: () => mockSingle() }) }
@@ -38,7 +33,16 @@ vi.mock('../supabase.js', () => ({
           },
           neq: (...neqArgs) => {
             mockNeq(...neqArgs)
-            return { order: (...orderArgs) => { mockOrder(...orderArgs); return mockOrder() } }
+            return {
+              order: (...orderArgs) => {
+                mockOrder(...orderArgs)
+                return mockOrder()
+              }
+            }
+          },
+          in: (...inArgs) => {
+            mockIn(...inArgs)
+            return mockIn()
           },
         }
       },
@@ -84,9 +88,7 @@ describe('saveDraft', () => {
     })
 
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        article_title: 'Updated Title',
-      })
+      expect.objectContaining({ article_title: 'Updated Title' })
     )
     expect(id).toBe('existing-draft-uuid')
   })
@@ -97,12 +99,16 @@ describe('listDrafts', () => {
     vi.clearAllMocks()
   })
 
-  it('returns drafts ordered by updated_at', async () => {
+  it('returns drafts with author names', async () => {
     const mockDrafts = [
-      { id: '1', article_title: 'Recent', updated_at: '2026-03-29', user_roles: { display_name: 'Dustin' } },
-      { id: '2', article_title: 'Older', updated_at: '2026-03-28', user_roles: { display_name: 'Brian' } },
+      { id: '1', article_title: 'Recent', updated_at: '2026-03-29', user_id: 'u1' },
+      { id: '2', article_title: 'Older', updated_at: '2026-03-28', user_id: 'u2' },
     ]
     mockOrder.mockResolvedValue({ data: mockDrafts, error: null })
+    mockIn.mockResolvedValue({ data: [
+      { user_id: 'u1', display_name: 'Dustin' },
+      { user_id: 'u2', display_name: 'Brian' },
+    ]})
 
     const { listDrafts } = await import('../drafts.js')
     const drafts = await listDrafts()
@@ -110,6 +116,7 @@ describe('listDrafts', () => {
     expect(mockNeq).toHaveBeenCalledWith('status', 'archived')
     expect(drafts[0].article_title).toBe('Recent')
     expect(drafts[0].author_name).toBe('Dustin')
+    expect(drafts[1].author_name).toBe('Brian')
   })
 })
 
