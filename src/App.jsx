@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { fetchAllMeetings, fetchAllCommentPeriods, fetchAllOrganizations, fetchAllOfficials } from './lib/api.js'
 import { loadSavedState, saveState, clearSavedState } from './lib/storage.js'
 import LoginPage from './LoginPage.jsx'
+import DraftsDashboard from './DraftsDashboard.jsx'
 import ToolNav from './ToolNav.jsx'
 import ArticleInputTab from './tabs/ArticleInputTab.jsx'
 import BuilderTab from './tabs/BuilderTab.jsx'
@@ -40,11 +41,16 @@ function TabButton({ active, onClick, children }) {
   )
 }
 
-function AuthenticatedApp({ onSignOut, userType, displayName }) {
+function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }) {
   // Load saved state from localStorage
   const saved = useState(() => loadSavedState())[0]
 
   const [activeTab, setActiveTab] = useState(saved?.activeTab || 'input')
+  const [showDrafts, setShowDrafts] = useState(userType === 'team') // Team members see drafts first
+
+  // Current draft tracking (for auto-save to Supabase)
+  const [currentDraftId, setCurrentDraftId] = useState(null)
+  const [saveStatus, setSaveStatus] = useState('') // '', 'saving', 'saved', 'error'
 
   // Article data
   const [articleData, setArticleData] = useState(saved?.articleData || null)
@@ -88,8 +94,49 @@ function AuthenticatedApp({ onSignOut, userType, displayName }) {
     })
   }, [activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch, includeQuestionForm])
 
+  // Auto-save to Supabase every 10 seconds for team members
+  useEffect(() => {
+    if (userType !== 'team' || !userId) return
+
+    const hasContent = articleData || analysis || organizations.length || meetings.length ||
+      commentPeriods.length || officials.length || actions.length ||
+      whyItMatters.trim() || whosDeciding.trim() || whatToWatch.trim()
+    if (!hasContent) return
+
+    const timer = setTimeout(async () => {
+      try {
+        setSaveStatus('saving')
+        const { saveDraft } = await import('./lib/drafts.js')
+        const draftData = {
+          activeTab, articleData, analysis,
+          organizations, meetings, commentPeriods, officials, actions,
+          whyItMatters, whosDeciding, whatToWatch, includeQuestionForm,
+        }
+        const id = await saveDraft({
+          draftId: currentDraftId,
+          userId,
+          articleTitle: articleData?.title || null,
+          articleUrl: articleData?.url || null,
+          draftData,
+        })
+        setCurrentDraftId(id)
+        setSaveStatus('saved')
+        // Clear "saved" indicator after 3 seconds
+        setTimeout(() => setSaveStatus(''), 3000)
+      } catch (err) {
+        console.error('Draft auto-save failed:', err)
+        setSaveStatus('error')
+      }
+    }, 10000) // 10 second debounce
+
+    return () => clearTimeout(timer)
+  }, [userType, userId, currentDraftId, activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch, includeQuestionForm])
+
   const handleNewArticle = () => {
     clearSavedState()
+    setCurrentDraftId(null) // New draft — don't overwrite previous
+    setSaveStatus('')
+    setShowDrafts(false)
     setActiveTab('input')
     setArticleData(null)
     setAnalysis(null)
@@ -102,6 +149,25 @@ function AuthenticatedApp({ onSignOut, userType, displayName }) {
     setWhosDeciding('')
     setWhatToWatch('')
     setIncludeQuestionForm(false)
+  }
+
+  // Load a saved draft from Supabase
+  const handleLoadDraft = async (draft) => {
+    const data = draft.draft_data || {}
+    setCurrentDraftId(draft.id)
+    setShowDrafts(false)
+    setActiveTab(data.activeTab || 'builder')
+    setArticleData(data.articleData || null)
+    setAnalysis(data.analysis || null)
+    setOrganizations(data.organizations || [])
+    setMeetings(data.meetings || [])
+    setCommentPeriods(data.commentPeriods || [])
+    setOfficials(data.officials || [])
+    setActions(data.actions || [])
+    setWhyItMatters(data.whyItMatters || '')
+    setWhosDeciding(data.whosDeciding || '')
+    setWhatToWatch(data.whatToWatch || '')
+    setIncludeQuestionForm(data.includeQuestionForm || false)
   }
 
   const hasSavedState = !!(articleData || analysis || organizations.length || meetings.length ||
@@ -179,32 +245,51 @@ function AuthenticatedApp({ onSignOut, userType, displayName }) {
       <ToolNav onSignOut={onSignOut} displayName={displayName} />
       <Header />
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center">
-            <TabButton active={activeTab === 'input'} onClick={() => setActiveTab('input')}>
-              1. Article Input
-            </TabButton>
-            <TabButton active={activeTab === 'builder'} onClick={() => setActiveTab('builder')}>
-              2. Builder
-            </TabButton>
-            <TabButton active={activeTab === 'output'} onClick={() => setActiveTab('output')}>
-              3. Output
-            </TabButton>
-            {hasSavedState && (
-              <button
-                onClick={handleNewArticle}
-                className="ml-auto px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
-              >
-                New Article
-              </button>
-            )}
+      {/* Tabs — hidden when viewing drafts dashboard */}
+      {!showDrafts && (
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center">
+              {userType === 'team' && (
+                <TabButton active={false} onClick={() => setShowDrafts(true)}>
+                  Drafts
+                </TabButton>
+              )}
+              <TabButton active={activeTab === 'input' && !showDrafts} onClick={() => { setShowDrafts(false); setActiveTab('input') }}>
+                1. Article Input
+              </TabButton>
+              <TabButton active={activeTab === 'builder' && !showDrafts} onClick={() => { setShowDrafts(false); setActiveTab('builder') }}>
+                2. Builder
+              </TabButton>
+              <TabButton active={activeTab === 'output' && !showDrafts} onClick={() => { setShowDrafts(false); setActiveTab('output') }}>
+                3. Output
+              </TabButton>
+              <span className="ml-auto flex items-center gap-3">
+                {saveStatus === 'saving' && <span className="text-xs text-gray-400">Saving...</span>}
+                {saveStatus === 'saved' && <span className="text-xs text-green-600">Saved</span>}
+                {saveStatus === 'error' && <span className="text-xs text-red-500">Save failed</span>}
+                {hasSavedState && (
+                  <button
+                    onClick={handleNewArticle}
+                    className="px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
+                  >
+                    New Article
+                  </button>
+                )}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
+        {showDrafts && userType === 'team' && (
+          <DraftsDashboard
+            onLoadDraft={handleLoadDraft}
+            onNewArticle={handleNewArticle}
+            userRole={userRole}
+          />
+        )}
         {activeTab === 'input' && (
           <ArticleInputTab
             articleData={articleData}
@@ -276,12 +361,16 @@ export default function App() {
   // 'team' = Supabase magic link user, 'guest' = shared password user
   const [userType, setUserType] = useState('guest')
   const [displayName, setDisplayName] = useState('')
+  const [userId, setUserId] = useState(null)
+  const [userRole, setUserRole] = useState('reporter')
 
   useEffect(() => {
     if (import.meta.env.DEV) {
       setIsAuthenticated(true)
       setUserType('team')
       setDisplayName('Dev User')
+      setUserId('dev-user-id')
+      setUserRole('admin')
       setAuthChecked(true)
       return
     }
@@ -296,6 +385,7 @@ export default function App() {
         if (session) {
           setIsAuthenticated(true)
           setUserType('team')
+          setUserId(session.user.id)
           setDisplayName(session.user.email)
           supabase.from('user_roles')
             .select('display_name, role')
@@ -303,6 +393,7 @@ export default function App() {
             .single()
             .then(({ data }) => {
               if (data?.display_name) setDisplayName(data.display_name)
+              if (data?.role) setUserRole(data.role)
             })
           setAuthChecked(true)
 
@@ -311,6 +402,7 @@ export default function App() {
             if (event === 'SIGNED_IN' && s) {
               setIsAuthenticated(true)
               setUserType('team')
+              setUserId(s.user.id)
               setDisplayName(s.user.email)
               supabase.from('user_roles')
                 .select('display_name, role')
@@ -318,6 +410,7 @@ export default function App() {
                 .single()
                 .then(({ data }) => {
                   if (data?.display_name) setDisplayName(data.display_name)
+                  if (data?.role) setUserRole(data.role)
                 })
             }
           })
@@ -375,5 +468,5 @@ export default function App() {
     )
   }
 
-  return <AuthenticatedApp onSignOut={handleSignOut} userType={userType} displayName={displayName} />
+  return <AuthenticatedApp onSignOut={handleSignOut} userType={userType} displayName={displayName} userId={userId} userRole={userRole} />
 }
