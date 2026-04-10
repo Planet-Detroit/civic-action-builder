@@ -220,8 +220,8 @@ function sanitizeContext(html) {
 // When interactiveCheckboxes is true, adds checkboxes for readers to mark actions taken
 // NOTE: JavaScript is generated separately via generateScript() — do NOT paste <script> into WordPress posts
 export function generateHTML({ meetings = [], commentPeriods = [], officials = [], actions = [], organizations = [], whyItMatters = '', whosDeciding = '', whatToWatch = '', interactiveCheckboxes = true, includeQuestionForm = false } = {}) {
-  let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 3px solid #ea5a39; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
-  <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #ea5a39;">🗳️ Civic Action Toolbox</h3>\n`
+  let html = `<div class="civic-action-box" style="background: #f0f5f8; border: 3px solid #2f80c3; border-radius: 8px; padding: 20px; font-family: -apple-system, sans-serif; max-width: 350px;">
+  <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #2f80c3;">🗳️ Civic Action Toolbox</h3>\n`
 
   // "Why it matters" — renders first, after the title
   if (whyItMatters?.trim()) {
@@ -379,9 +379,9 @@ export function generateHTML({ meetings = [], commentPeriods = [], officials = [
   }
 
   html += `  <div id="civic-thumbsup" style="margin: 16px 0 8px 0; text-align: center;">
-    <button id="civic-thumbsup-btn" style="background: none; border: 2px solid #ea5a39; border-radius: 24px; padding: 8px 18px; cursor: pointer; font-size: 16px; color: #333; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;" aria-label="I took civic action">
+    <button id="civic-thumbsup-btn" style="background: none; border: 2px solid #ea5a39; border-radius: 24px; padding: 8px 18px; cursor: pointer; font-size: 16px; color: #333; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;" aria-label="This matters to me">
       <span id="civic-thumbsup-icon" style="font-size: 22px;">👍</span>
-      <span style="font-size: 13px; font-weight: 600;">I'm taking civic action!</span>
+      <span style="font-size: 13px; font-weight: 600;">This matters to me</span>
     </button>
   </div>
   <div id="civic-response-form" style="margin: 8px 0 12px 0; padding: 12px; background: #e8f0fe; border-radius: 6px;">

@@ -109,14 +109,15 @@ describe('trackLink', () => {
 })
 
 describe('generateHTML', () => {
-  // Should produce valid HTML with civic-action-box wrapper, title, and orange border
+  // Should produce valid HTML with civic-action-box wrapper, title, and blue border
   it('generates wrapper div with default content', () => {
     const html = generateHTML()
     expect(html).toContain('civic-action-box')
     expect(html).toContain('Civic Action Toolbox')
     expect(html).toContain('Planet Detroit')
-    // Orange CTA border
-    expect(html).toContain('border: 3px solid #ea5a39')
+    // Blue CTA border + matching title underline
+    expect(html).toContain('border: 3px solid #2f80c3')
+    expect(html).toContain('border-bottom: 2px solid #2f80c3')
   })
 
   // Should include meetings section when meetings are provided
@@ -364,7 +365,7 @@ describe('generateHTML — thumbs-up indicator', () => {
       meetings: [{ title: 'Test', start_datetime: '2025-03-15T10:00:00' }],
     })
     expect(html).toContain('civic-thumbsup-btn')
-    expect(html).toContain("I'm taking civic action!")
+    expect(html).toContain('This matters to me')
   })
 
   // Thumbs-up should appear before the response form
