@@ -98,10 +98,12 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
   useEffect(() => {
     if (userType !== 'team' || !userId) return
 
-    const hasContent = articleData || analysis || organizations.length || meetings.length ||
+    // Only save once the user has done real civic-action work — not just pasted a URL.
+    // Requires analysis to have run OR explicit builder content added.
+    const hasMeaningfulContent = analysis || organizations.length || meetings.length ||
       commentPeriods.length || officials.length || actions.length ||
       whyItMatters.trim() || whosDeciding.trim() || whatToWatch.trim()
-    if (!hasContent) return
+    if (!hasMeaningfulContent) return
 
     const timer = setTimeout(async () => {
       try {

@@ -23,14 +23,26 @@ export default function DraftsDashboard({ onLoadDraft, onNewArticle, userRole })
     }
   }
 
-  const handleArchive = async (draftId) => {
+  const handleDelete = async (draftId) => {
+    if (!confirm('Delete this draft? It will be hidden from the dashboard.')) return
     try {
       await updateDraftStatus(draftId, 'archived')
       setDrafts(prev => prev.filter(d => d.id !== draftId))
     } catch (err) {
-      console.error('Failed to archive draft:', err)
+      console.error('Failed to delete draft:', err)
     }
   }
+
+  const handleApprove = async (draftId) => {
+    try {
+      await updateDraftStatus(draftId, 'complete')
+      setDrafts(prev => prev.map(d => d.id === draftId ? { ...d, status: 'complete' } : d))
+    } catch (err) {
+      console.error('Failed to approve draft:', err)
+    }
+  }
+
+  const canApprove = userRole === 'editor' || userRole === 'admin'
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr)
@@ -111,12 +123,21 @@ export default function DraftsDashboard({ onLoadDraft, onNewArticle, userRole })
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.color}`}>
                       {status.text}
                     </span>
+                    {canApprove && draft.status === 'submitted' && (
+                      <button
+                        onClick={() => handleApprove(draft.id)}
+                        className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
+                        title="Mark this draft as approved"
+                      >
+                        Approve
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleArchive(draft.id)}
+                      onClick={() => handleDelete(draft.id)}
                       className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                      title="Archive this draft"
+                      title="Delete this draft (hidden from dashboard)"
                     >
-                      Archive
+                      Delete
                     </button>
                   </div>
                 </div>
