@@ -154,7 +154,18 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
   }
 
   // Load a saved draft from Supabase
-  const handleLoadDraft = async (draft) => {
+  // The dashboard list only fetches metadata, so fetch the full draft (with draft_data) here.
+  const handleLoadDraft = async (draftSummary) => {
+    const { loadDraft } = await import('./lib/drafts.js')
+    let draft = draftSummary
+    if (!draftSummary.draft_data) {
+      try {
+        draft = await loadDraft(draftSummary.id)
+      } catch (err) {
+        console.error('Failed to load draft:', err)
+        return
+      }
+    }
     const data = draft.draft_data || {}
     setCurrentDraftId(draft.id)
     setShowDrafts(false)
