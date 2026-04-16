@@ -55,6 +55,8 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
   // Article data
   const [articleData, setArticleData] = useState(saved?.articleData || null)
   const [analysis, setAnalysis] = useState(saved?.analysis || null)
+  // Editable draft title — falls back to article title / analysis summary when empty
+  const [draftTitle, setDraftTitle] = useState(saved?.draftTitle || '')
 
   // Builder selections
   const [organizations, setOrganizations] = useState(saved?.organizations || [])
@@ -88,11 +90,11 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
       whyItMatters.trim() || whosDeciding.trim() || whatToWatch.trim()
     if (!hasContent) return
     saveState({
-      activeTab, articleData, analysis,
+      activeTab, articleData, analysis, draftTitle,
       organizations, meetings, commentPeriods, officials, actions,
       whyItMatters, whosDeciding, whatToWatch, includeQuestionForm
     })
-  }, [activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch, includeQuestionForm])
+  }, [activeTab, articleData, analysis, draftTitle, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch, includeQuestionForm])
 
   // Auto-save to Supabase every 10 seconds for team members
   useEffect(() => {
@@ -110,14 +112,14 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
         setSaveStatus('saving')
         const { saveDraft } = await import('./lib/drafts.js')
         const draftData = {
-          activeTab, articleData, analysis,
+          activeTab, articleData, analysis, draftTitle,
           organizations, meetings, commentPeriods, officials, actions,
           whyItMatters, whosDeciding, whatToWatch, includeQuestionForm,
         }
         const id = await saveDraft({
           draftId: currentDraftId,
           userId,
-          articleTitle: articleData?.title || null,
+          articleTitle: draftTitle?.trim() || articleData?.title || null,
           articleUrl: articleData?.url || null,
           draftData,
         })
@@ -132,7 +134,7 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
     }, 10000) // 10 second debounce
 
     return () => clearTimeout(timer)
-  }, [userType, userId, currentDraftId, activeTab, articleData, analysis, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch, includeQuestionForm])
+  }, [userType, userId, currentDraftId, activeTab, articleData, analysis, draftTitle, organizations, meetings, commentPeriods, officials, actions, whyItMatters, whosDeciding, whatToWatch, includeQuestionForm])
 
   const handleNewArticle = () => {
     clearSavedState()
@@ -142,6 +144,7 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
     setActiveTab('input')
     setArticleData(null)
     setAnalysis(null)
+    setDraftTitle('')
     setOrganizations([])
     setMeetings([])
     setCommentPeriods([])
@@ -169,9 +172,13 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
     const data = draft.draft_data || {}
     setCurrentDraftId(draft.id)
     setShowDrafts(false)
-    setActiveTab(data.activeTab || 'builder')
+    // Editors/admins reviewing a submitted draft should land on Builder, not wherever the reporter left off.
+    const isReviewer = userRole === 'editor' || userRole === 'admin'
+    const forceBuilder = isReviewer && draft.status === 'submitted'
+    setActiveTab(forceBuilder ? 'builder' : (data.activeTab || 'builder'))
     setArticleData(data.articleData || null)
     setAnalysis(data.analysis || null)
+    setDraftTitle(data.draftTitle || draft.article_title || '')
     setOrganizations(data.organizations || [])
     setMeetings(data.meetings || [])
     setCommentPeriods(data.commentPeriods || [])
@@ -264,6 +271,13 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
     if (result.whos_deciding) setWhosDeciding(result.whos_deciding)
     if (result.what_to_watch) setWhatToWatch(result.what_to_watch)
 
+    // If the user hasn't named the draft and there's no article title (pasted text),
+    // fall back to the first sentence of the AI summary so it doesn't show as "Untitled."
+    if (!draftTitle.trim() && !articleData?.title && result.summary) {
+      const firstSentence = result.summary.split(/(?<=\.)\s+/)[0] || result.summary
+      setDraftTitle(firstSentence.slice(0, 80))
+    }
+
     setActiveTab('builder')
   }
 
@@ -301,6 +315,16 @@ function AuthenticatedApp({ onSignOut, userType, displayName, userId, userRole }
               3. Output
             </TabButton>
             <span className="ml-auto flex items-center gap-3">
+              {userType === 'team' && (
+                <input
+                  type="text"
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  placeholder="Draft name (optional)"
+                  className="px-2 py-1 text-xs border border-gray-300 rounded w-56 focus:outline-none focus:ring-1 focus:ring-pd-orange"
+                  title="Name this draft so you can find it later"
+                />
+              )}
               {saveStatus === 'saving' && <span className="text-xs text-gray-400">Saving...</span>}
               {saveStatus === 'saved' && <span className="text-xs text-green-600">Saved</span>}
               {saveStatus === 'error' && <span className="text-xs text-red-500">Save failed</span>}
