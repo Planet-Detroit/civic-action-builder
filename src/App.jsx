@@ -437,8 +437,70 @@ export default function App() {
       return
     }
 
-    // Check Supabase session first (team members), then fall back to guest cookie
     const checkAuth = async () => {
+      // 1. Check for guest access token in URL (judge links)
+      const params = new URLSearchParams(window.location.search)
+      const accessToken = params.get('access')
+      if (accessToken) {
+        try {
+          const { getSupabase } = await import('./lib/supabase.js')
+          const supabase = getSupabase()
+          const { data } = await supabase
+            .from('guest_tokens')
+            .select('label')
+            .eq('token', accessToken)
+            .eq('tool', 'civic-action-builder')
+            .is('revoked_at', null)
+            .single()
+
+          if (data) {
+            localStorage.setItem('pd_guest_token', accessToken)
+            // Clean the token from the URL so it isn't shared accidentally
+            const cleanUrl = new URL(window.location.href)
+            cleanUrl.searchParams.delete('access')
+            window.history.replaceState({}, '', cleanUrl.toString())
+            setIsAuthenticated(true)
+            setUserType('guest')
+            setDisplayName(data.label)
+            setUserRole('editor')
+            setAuthChecked(true)
+            return
+          }
+        } catch {
+          // Invalid token — fall through to normal auth
+        }
+      }
+
+      // 1b. Check for previously validated guest token in localStorage
+      const savedToken = localStorage.getItem('pd_guest_token')
+      if (savedToken) {
+        try {
+          const { getSupabase } = await import('./lib/supabase.js')
+          const supabase = getSupabase()
+          const { data } = await supabase
+            .from('guest_tokens')
+            .select('label')
+            .eq('token', savedToken)
+            .eq('tool', 'civic-action-builder')
+            .is('revoked_at', null)
+            .single()
+
+          if (data) {
+            setIsAuthenticated(true)
+            setUserType('guest')
+            setDisplayName(data.label)
+            setUserRole('editor')
+            setAuthChecked(true)
+            return
+          } else {
+            localStorage.removeItem('pd_guest_token')
+          }
+        } catch {
+          localStorage.removeItem('pd_guest_token')
+        }
+      }
+
+      // 2. Check Supabase session (team members)
       try {
         const { getSupabase } = await import('./lib/supabase.js')
         const supabase = getSupabase()
@@ -459,7 +521,6 @@ export default function App() {
             })
           setAuthChecked(true)
 
-          // Listen for auth state changes (magic link callback)
           supabase.auth.onAuthStateChange((event, s) => {
             if (event === 'SIGNED_IN' && s) {
               setIsAuthenticated(true)
@@ -482,7 +543,7 @@ export default function App() {
         // Supabase not available — fall through to guest check
       }
 
-      // No Supabase session — check guest cookie (existing flow)
+      // 3. Check guest cookie (legacy fallback)
       try {
         const res = await fetch('/api/auth/check')
         if (res.ok) {
@@ -503,7 +564,7 @@ export default function App() {
       const { getSupabase } = await import('./lib/supabase.js')
       await getSupabase().auth.signOut()
     }
-    // Also clear guest cookie
+    localStorage.removeItem('pd_guest_token')
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
     setIsAuthenticated(false)
     setUserType('guest')
